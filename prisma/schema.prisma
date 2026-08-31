@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url = "file:./dev.db"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  phone         String   @unique
+  password      String
+  role          String   @default("farmer") // farmer, buyer, admin
+  status        String   @default("pending") // pending, approved, rejected
+  ghanaCardUrl  String   @default("")
+  farmer        Farmer?
+  buyer         Buyer?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Farmer {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  phone     String
+  region    String
+  town      String
+  farmSize  Float    @default(0)
+  mainCrops String
+  listings  Listing[]
+  reviews   Review[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Buyer {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  phone     String
+  businessType String
+  location  String
+  lookingFor String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Listing {
+  id          String   @id @default(cuid())
+  crop        String
+  quantity    Int
+  unit        String   @default("bags")
+  price       Float
+  grade       String   @default("Grade B — Good")
+  region      String
+  location    String
+  farmerId    String
+  farmer      Farmer   @relation(fields: [farmerId], references: [id])
+  harvestDate String
+  notes       String?
+  images      String   @default("[]") // JSON array of up to 5 image URLs
+  status      String   @default("available") // available, reserved, sold
+  postedDate  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Price {
+  id        String   @id @default(cuid())
+  crop      String
+  market    String
+  region    String
+  lowPrice  Float
+  highPrice Float
+  trend     String   @default("stable") // up, down, stable
+  date      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  farmerId  String
+  farmer    Farmer   @relation(fields: [farmerId], references: [id])
+  buyerId   String
+  buyerName String
+  rating    Int      // 1-5 stars
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  listingId       String
+  crop            String
+  quantity        Int
+  unitPrice       Float
+  totalAmount     Float    // quantity * unitPrice
+  commissionRate   Float    @default(0.10) // 10% admin commission
+  hubtelFeeRate   Float    @default(0.015) // 1.5% Hubtel fee
+  commissionAmount Float   // 10% of total
+  hubtelFeeAmount Float    // 1.5% of total
+  farmerPayout    Float    // totalAmount - commission - hubtelFee (88.5%)
+  farmerId        String
+  farmerName      String
+  farmerPhone     String
+  buyerId         String
+  buyerName       String
+  buyerPhone      String
+  status          String   @default("pending") // pending → paid → delivered → released → cancelled
+  paystackRef     String?  // Paystack transaction reference
+  paymentProvider String   @default("paystack") // paystack, hubtel, manual
+  hubtelTxId      String?  // legacy Hubtel transaction ID
+  paymentMethod   String?  // momo, card
+  adminNote       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

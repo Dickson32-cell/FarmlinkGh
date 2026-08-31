@@ -1,0 +1,294 @@
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+interface PendingUser {
+  id: string; name: string; phone: string; role: string;
+  status: string; ghanaCardUrl: string; createdAt: string;
+}
+
+interface Order {
+  id: string; crop: string; quantity: number; unitPrice: number;
+  totalAmount: number; commissionAmount: number; farmerPayout: number;
+  farmerName: string; farmerPhone: string; buyerName: string; buyerPhone: string;
+  status: string; adminNote: string | null; hubtelTxId: string | null; createdAt: string;
+}
+
+export default function Admin() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, delivered: 0, released: 0, revenue: 0 });
+  const [activeTab, setActiveTab] = useState<"verifications" | "orders">("verifications");
+  const [cardModal, setCardModal] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => {
+      if (!d.user) { router.push("/login"); return; }
+      if (d.user.role !== "admin") { router.push("/dashboard"); return; }
+      setUser(d.user);
+      loadAll();
+    });
+  }, [router]);
+
+  const loadAll = () => {
+    Promise.all([
+      fetch("/api/orders").then((r) => r.json()),
+      fetch("/api/admin/users").then((r) => r.json()),
+    ]).then(([ordersData, usersData]) => {
+      setOrders(ordersData);
+      setPendingUsers(Array.isArray(usersData) ? usersData : []);
+      const s = {
+        total: ordersData.length,
+        pending: ordersData.filter((o: Order) => o.status === "pending").length,
+        paid: ordersData.filter((o: Order) => o.status === "paid").length,
+        delivered: ordersData.filter((o: Order) => o.status === "delivered").length,
+        released: ordersData.filter((o: Order) => o.status === "released").length,
+        revenue: ordersData.filter((o: Order) => o.status === "released").reduce((sum: number, o: Order) => sum + o.commissionAmount, 0),
+      };
+      setStats(s);
+      setLoading(false);
+    });
+  };
+
+  const updateOrderStatus = async (id: string, status: string, note?: string) => {
+    const action = status === "paid" ? "confirm payment received" : status === "released" ? "release payment to farmer" : status === "cancelled" ? "cancel this order" : "update";
+    if (!confirm(`Are you sure you want to ${action}?`)) return;
+    await fetch("/api/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status, adminNote: note }),
+    });
+    loadAll();
+  };
+
+  const handleVerification = async (userId: string, action: "approve" | "reject") => {
+    const label = action === "approve" ? "approve" : "reject";
+    if (!confirm(`Are you sure you want to ${label} this user?`)) return;
+    await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, action }),
+    });
+    loadAll();
+  };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>;
+  if (!user) return null;
+
+  const statusColors: any = {
+    pending: "bg-amber-50 text-amber-600", paid: "bg-blue-50 text-blue-600",
+    delivered: "bg-green-50 text-green-600", released: "bg-[#1b5e20] text-white",
+    cancelled: "bg-red-50 text-red-600",
+  };
+
+  return (
+    <div className="min-h-screen">
+      {/* Ghana Card Modal */}
+      {cardModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setCardModal(null)}>
+          <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+            <img src={cardModal} alt="Ghana Card" className="w-full rounded-xl shadow-2xl" />
+            <button onClick={() => setCardModal(null)} className="absolute top-2 right-2 bg-white text-gray-800 w-9 h-9 rounded-full font-bold text-lg hover:bg-gray-100">✕</button>
+          </div>
+        </div>
+      )}
+
+      <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-40">
+        <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Admin</span></div>
+        <div className="flex gap-2">
+          <Link href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</Link>
+          <Link href="/prices" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Prices</Link>
+          <button onClick={() => { fetch("/api/auth/logout", { method: "POST" }).then(() => router.push("/")); }} className="bg-red-600/70 px-3 py-1.5 rounded-lg text-sm hover:bg-red-600">Logout</button>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto p-6">
+        <h1 className="text-2xl font-bold text-[#1b5e20] mb-6">Admin Dashboard</h1>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+          <div className="bg-white rounded-xl p-4 shadow border border-gray-200">
+            <div className="text-xs uppercase text-gray-500">Total Orders</div>
+            <div className="text-xl font-bold">{stats.total}</div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow border border-gray-200">
+            <div className="text-xs uppercase text-gray-500">Pending</div>
+            <div className="text-xl font-bold text-amber-600">{stats.pending}</div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow border border-gray-200">
+            <div className="text-xs uppercase text-gray-500">Paid</div>
+            <div className="text-xl font-bold text-blue-600">{stats.paid}</div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow border border-gray-200">
+            <div className="text-xs uppercase text-gray-500">Delivered</div>
+            <div className="text-xl font-bold text-green-600">{stats.delivered}</div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow border border-gray-200">
+            <div className="text-xs uppercase text-gray-500">Released</div>
+            <div className="text-xl font-bold text-[#1b5e20]">{stats.released}</div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow border-2 border-[#e65100]">
+            <div className="text-xs uppercase text-gray-500">Commission</div>
+            <div className="text-xl font-bold text-[#e65100]">GH₵{stats.revenue.toFixed(2)}</div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={() => setActiveTab("verifications")}
+            className={`px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 ${activeTab === "verifications" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+          >
+            🪪 Pending Verifications
+            {pendingUsers.length > 0 && (
+              <span className={`rounded-full text-xs font-bold px-2 py-0.5 ${activeTab === "verifications" ? "bg-white text-[#1b5e20]" : "bg-red-500 text-white"}`}>
+                {pendingUsers.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={`px-5 py-2.5 rounded-lg font-semibold text-sm ${activeTab === "orders" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+          >
+            📦 Orders ({stats.total})
+          </button>
+        </div>
+
+        {/* Pending Verifications Tab */}
+        {activeTab === "verifications" && (
+          <div>
+            <h2 className="text-lg font-bold text-[#1b5e20] mb-3">Pending Account Verifications</h2>
+            {pendingUsers.length === 0 ? (
+              <div className="bg-white rounded-xl shadow border border-gray-200 p-10 text-center text-gray-400">
+                <div className="text-4xl mb-3">✅</div>
+                <div className="font-semibold">No pending verifications</div>
+                <div className="text-sm">All registered users have been reviewed.</div>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {pendingUsers.map((u) => (
+                  <div key={u.id} className="bg-white rounded-xl shadow border-2 border-amber-200 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <div className="font-bold text-lg">{u.name}</div>
+                        <div className="text-sm text-gray-500">{u.phone} · <span className={`capitalize font-semibold ${u.role === "farmer" ? "text-[#1b5e20]" : "text-[#e65100]"}`}>{u.role}</span></div>
+                        <div className="text-xs text-gray-400 mt-0.5">Registered: {new Date(u.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
+                      </div>
+                      <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">Pending</span>
+                    </div>
+
+                    {/* Ghana Card Preview */}
+                    <div className="mb-4">
+                      <div className="text-xs font-semibold uppercase text-gray-500 mb-2">🪪 Ghana Card</div>
+                      {u.ghanaCardUrl ? (
+                        <button
+                          onClick={() => setCardModal(u.ghanaCardUrl)}
+                          className="relative w-full h-36 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-[#1b5e20] transition-colors group"
+                        >
+                          <img src={u.ghanaCardUrl} alt="Ghana Card" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                            <span className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 text-xs font-semibold px-3 py-1 rounded-full transition-opacity">🔍 Click to enlarge</span>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="w-full h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
+                          No card uploaded
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Verify checklist */}
+                    <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs text-gray-600">
+                      <div className="font-semibold mb-1">Verify before approving:</div>
+                      <ul className="space-y-0.5 list-disc list-inside">
+                        <li>Card photo is clear and readable</li>
+                        <li>Name on card matches: <strong>{u.name}</strong></li>
+                        <li>Card appears genuine</li>
+                      </ul>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleVerification(u.id, "approve")}
+                        className="flex-1 bg-[#1b5e20] text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-[#0d3818]"
+                      >✅ Approve</button>
+                      <button
+                        onClick={() => handleVerification(u.id, "reject")}
+                        className="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-red-700"
+                      >❌ Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Orders Tab */}
+        {activeTab === "orders" && (
+          <div>
+            <h2 className="text-lg font-bold text-[#1b5e20] mb-3">All Orders</h2>
+            {orders.length === 0 ? (
+              <div className="bg-white rounded-xl shadow border border-gray-200 p-8 text-center text-gray-400">No orders yet</div>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((o) => (
+                  <div key={o.id} className="bg-white rounded-xl shadow border border-gray-200 p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <span className="font-bold text-lg">{o.crop}</span>
+                        <span className={`ml-3 px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[o.status]}`}>{o.status}</span>
+                      </div>
+                      <span className="text-xs text-gray-400">{new Date(o.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-3 text-sm mb-3">
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs uppercase text-gray-500 mb-1">Buyer</div>
+                        <div className="font-semibold">{o.buyerName}</div>
+                        <div className="text-gray-600">{o.buyerPhone}</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs uppercase text-gray-500 mb-1">Farmer</div>
+                        <div className="font-semibold">{o.farmerName}</div>
+                        <div className="text-gray-600">{o.farmerPhone}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
+                      <div><span className="text-gray-500">Qty:</span> <strong>{o.quantity} bags</strong></div>
+                      <div><span className="text-gray-500">Total:</span> <strong className="text-[#e65100]">GH₵{o.totalAmount.toLocaleString()}</strong></div>
+                      <div><span className="text-gray-500">Farmer Payout:</span> <strong className="text-[#1b5e20]">GH₵{o.farmerPayout.toFixed(2)}</strong></div>
+                      <div><span className="text-gray-500">Commission:</span> <strong>GH₵{o.commissionAmount.toFixed(2)}</strong></div>
+                    </div>
+                    {o.hubtelTxId && <div className="text-xs text-gray-400 mb-2">Hubtel Tx: {o.hubtelTxId}</div>}
+                    {o.adminNote && <div className="bg-amber-50 rounded-lg p-2 text-xs text-amber-700 mb-3">Note: {o.adminNote}</div>}
+                    <div className="flex gap-2 flex-wrap">
+                      {o.status === "pending" && (
+                        <>
+                          <button onClick={() => updateOrderStatus(o.id, "paid", "Payment confirmed by admin")} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700">✓ Confirm Payment</button>
+                          <button onClick={() => updateOrderStatus(o.id, "cancelled", "Order cancelled by admin")} className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-700">Cancel</button>
+                        </>
+                      )}
+                      {o.status === "paid" && <span className="text-sm text-gray-500 italic">Waiting for buyer to confirm delivery</span>}
+                      {o.status === "delivered" && (
+                        <button onClick={() => updateOrderStatus(o.id, "released", "Payment released to farmer")} className="bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818]">
+                          💰 Release Payment to Farmer (GH₵{o.farmerPayout.toFixed(2)})
+                        </button>
+                      )}
+                      {o.status === "released" && <span className="text-sm text-[#1b5e20] font-semibold">✓ Payment released — Commission: GH₵{o.commissionAmount.toFixed(2)}</span>}
+                      {o.status === "cancelled" && <span className="text-sm text-red-500">Order cancelled</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

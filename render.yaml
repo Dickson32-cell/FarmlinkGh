@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: farmlink-ghana
+    env: node
+    plan: free
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        value: farmlink-ghana-jwt-secret-2026
+      - key: NEXT_PUBLIC_APP_NAME
+        value: FarmLink Ghana
