@@ -118,7 +118,10 @@ export async function PATCH(req: NextRequest) {
       if (order.status !== "pending" && order.status !== "paid")
         return NextResponse.json({ error: "Cannot confirm delivery at this stage" }, { status: 400 });
 
-      const updated = await prisma.order.update({ where: { id }, data: { status: "delivered" } });
+      const updated = await prisma.order.update({
+        where: { id },
+        data: { status: "delivered", deliveredAt: new Date() },
+      });
       return NextResponse.json(updated);
     }
 

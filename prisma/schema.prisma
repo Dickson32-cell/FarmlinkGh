@@ -15,6 +15,8 @@ model User {
   role          String   @default("farmer") // farmer, buyer, admin
   status        String   @default("pending") // pending, approved, rejected
   ghanaCardUrl  String   @default("")
+  twoFactorEnabled Boolean @default(true) // OTP on every login (opt-out possible)
+  lastNetwork      String  @default("")    // MTN / Telecel / AT detected at registration
   farmer        Farmer?
   buyer         Buyer?
   createdAt     DateTime @default(now())
@@ -118,6 +120,20 @@ model Order {
   hubtelTxId      String?  // legacy Hubtel transaction ID
   paymentMethod   String?  // momo, card
   adminNote       String?
+  deliveredAt     DateTime?  // when buyer confirmed receipt
+  autoReleased    Boolean    @default(false) // set when 48h auto-release cron fires
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+model OtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  codeHash  String   // bcrypt hash of the 6-digit code
+  purpose   String   @default("login") // login, withdrawal
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([phone, createdAt])
 }

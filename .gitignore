@@ -2,3 +2,7 @@ node_modules/
 .next/
 .env
 *.log
+*.db.bak*
+dev.db
+*.db.fresh
+*.db.bak*

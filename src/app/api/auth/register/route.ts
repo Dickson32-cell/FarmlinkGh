@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { detectNetwork } from "@/lib/otp";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +18,15 @@ export async function POST(req: NextRequest) {
     }
     const hashed = await hashPassword(password);
     const user = await prisma.user.create({
-      data: { name, phone, password: hashed, role, status: "pending", ghanaCardUrl },
+      data: {
+        name,
+        phone,
+        password: hashed,
+        role,
+        status: "pending",
+        ghanaCardUrl,
+        lastNetwork: detectNetwork(phone),
+      },
     });
     if (role === "farmer") {
       await prisma.farmer.create({

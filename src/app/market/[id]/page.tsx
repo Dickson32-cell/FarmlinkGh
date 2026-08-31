@@ -98,12 +98,17 @@ export default function ListingDetail() {
     const order = await res.json();
     if (res.ok) {
       // Initiate payment
-      const payRes = await fetch("/api/payment/hubtel", {
+      const payRes = await fetch("/api/payment/paystack", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: order.id }),
       });
       const payData = await payRes.json();
+      if (payData.mode === "paystack" && payData.authorizationUrl) {
+        // Go straight to Paystack checkout (MoMo/card), then return to /orders
+        window.location.href = payData.authorizationUrl;
+        return;
+      }
       setOrderCreated({ order, payData });
     }
     setBuying(false);
