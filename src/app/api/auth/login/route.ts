@@ -16,10 +16,46 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
+
+    // Brute-force lockout: 5 consecutive fails = 15 min lock
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const mins = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+      return NextResponse.json(
+        { error: `Account temporarily locked after failed attempts. Try again in ${mins} min.` },
+        { status: 423 }
+      );
+    }
+
     const valid = await verifyPassword(password, user.password);
     if (!valid) {
+      const fails = user.failedLogins + 1;
+      if (fails >= 5) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            failedLogins: 0,
+            lockedUntil: new Date(Date.now() + 15 * 60 * 1000),
+          },
+        });
+        return NextResponse.json(
+          { error: "Too many failed attempts. Account locked for 15 minutes." },
+          { status: 423 }
+        );
+      }
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLogins: fails },
+      });
       // uniform error — never reveal whether the phone exists
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    // success → reset failure counter
+    if (user.failedLogins > 0) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLogins: 0, lockedUntil: null },
+      });
     }
     if (user.status === "pending") {
       return NextResponse.json({
@@ -38,6 +74,10 @@ export async function POST(req: NextRequest) {
     const network = detectNetwork(phone);
     if (user.lastNetwork !== network) {
       await prisma.user.update({ where: { id: user.id }, data: { lastNetwork: network } });
+    }
+
+    if (user.role === "admin") {
+      console.log(`⚠️ ADMIN LOGIN attempt: ${user.name} (${phone}) at ${new Date().toISOString()}`);
     }
 
     if (!user.twoFactorEnabled) {

@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url = "file:./dev.db"
+  url = "file:./dev.db.bak1"
 }
 
 model User {
@@ -17,6 +17,8 @@ model User {
   ghanaCardUrl  String   @default("")
   twoFactorEnabled Boolean @default(true) // OTP on every login (opt-out possible)
   lastNetwork      String  @default("")    // MTN / Telecel / AT detected at registration
+  failedLogins     Int     @default(0)     // consecutive failed password attempts
+  lockedUntil      DateTime?               // brute-force lockout expiry
   farmer        Farmer?
   buyer         Buyer?
   createdAt     DateTime @default(now())
@@ -136,4 +138,16 @@ model OtpCode {
   createdAt DateTime @default(now())
 
   @@index([phone, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String   // admin userId
+  actorName String
+  action    String   // e.g. order.released, user.approved
+  targetId  String?  // order/user id
+  details   String?  // JSON or note
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
 }

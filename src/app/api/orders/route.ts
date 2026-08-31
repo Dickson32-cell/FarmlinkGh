@@ -90,14 +90,51 @@ export async function PATCH(req: NextRequest) {
 
     // Role-based status transitions
     if (session.role === "admin") {
-      // Admin can: mark as paid, mark as delivered, release payment, cancel
       const validStatuses = ["pending", "paid", "delivered", "released", "cancelled"];
       if (!validStatuses.includes(status))
         return NextResponse.json({ error: "Invalid status" }, { status: 400 });
 
+      // Step-up auth: releasing money requires a fresh admin-action token
+      let actionTokenPayload: any = null;
+      if (status === "released") {
+        const actionToken = req.headers.get("x-admin-action-token") || "";
+        if (!actionToken) {
+          return NextResponse.json(
+            { error: "Confirm with admin OTP first", requireOtp: true },
+            { status: 401 }
+          );
+        }
+        try {
+          const { jwtVerify } = await import("jose");
+          const secret = new TextEncoder().encode(
+            process.env.JWT_SECRET || "farmlink-dev-secret-2026"
+          );
+          const { payload } = await (await import("jose")).jwtVerify(actionToken, secret);
+          if (payload.purpose !== "admin_action" || payload.role !== "admin") {
+            return NextResponse.json({ error: "Invalid action token" }, { status: 401 });
+          }
+        } catch {
+          return NextResponse.json(
+            { error: "Admin confirmation expired. Request a new code.", requireOtp: true },
+            { status: 401 }
+          );
+        }
+      }
+
       const updated = await prisma.order.update({
         where: { id },
         data: { status, adminNote: adminNote || order.adminNote },
+      });
+
+      // Audit trail — who changed what
+      await prisma.auditLog.create({
+        data: {
+          actorId: session.userId,
+          actorName: "admin",
+          action: `order.${status}`,
+          targetId: id,
+          details: `${order.crop} x${order.quantity} | GHS ${order.totalAmount} | ${order.buyerName} -> ${order.farmerName}`,
+        },
       });
 
       // If released, mark the listing as sold

@@ -23,6 +23,10 @@ export default function Admin() {
   const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, delivered: 0, released: 0, revenue: 0 });
   const [activeTab, setActiveTab] = useState<"verifications" | "orders">("verifications");
   const [cardModal, setCardModal] = useState<string | null>(null);
+  const [otpModal, setOtpModal] = useState<{ orderId: string; label: string } | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -54,13 +58,66 @@ export default function Admin() {
     });
   };
 
-  const updateOrderStatus = async (id: string, status: string, note?: string) => {
+  const updateOrderStatus = async (id: string, status: string, note?: string, actionToken?: string) => {
     const action = status === "paid" ? "confirm payment received" : status === "released" ? "release payment to farmer" : status === "cancelled" ? "cancel this order" : "update";
+    if (!actionToken && status === "released") {
+      // Money-movement — require admin OTP first
+      setOtpModal({ orderId: id, label: "release payment to farmer" });
+      // trigger the SMS code
+      await fetch("/api/auth/admin-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      return;
+    }
+    if (actionToken && status !== "released") actionToken = undefined;
     if (!confirm(`Are you sure you want to ${action}?`)) return;
+    const res = await fetch("/api/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...(actionToken ? { "x-admin-action-token": actionToken } : {}) },
+      body: JSON.stringify({ id, status, adminNote: note }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (err.requireOtp) {
+        setOtpModal({ orderId: id, label: action });
+        await fetch("/api/auth/admin-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        return;
+      }
+      alert(err.error || "Action failed");
+      return;
+    }
+    loadAll();
+  };
+
+  const submitReleaseOtp = async () => {
+    if (!otpModal) return;
+    setOtpLoading(true);
+    setOtpError("");
+    try {
+      const otpRes = await fetch("/api/auth/admin-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: otpCode.trim() }),
+      });
+      const otpData = await otpRes.json();
+      if (!otpRes.ok || !otpData.actionToken) {
+        setOtpError(otpData.error || "Invalid code");
+        setOtpLoading(false);
+        return;
+      }
+      setOtpLoading(false);
+      setOtpModal(null);
+      setOtpCode("");
+      await updateOtpVerified(otpModal.orderId, otpData.actionToken);
+    } catch {
+      setOtpError("Verification failed. Try again.");
+      setOtpLoading(false);
+    }
+  };
+
+  const updateOtpVerified = async (id: string, actionToken: string) => {
     await fetch("/api/orders", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status, adminNote: note }),
+      headers: { "Content-Type": "application/json", "x-admin-action-token": actionToken },
+      body: JSON.stringify({ id, status: "released", adminNote: "Payment released after admin OTP confirmation" }),
     });
     loadAll();
   };
@@ -288,7 +345,31 @@ export default function Admin() {
             )}
           </div>
         )}
-      </div>
+  {otpModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm">
+            <h2 className="text-xl font-bold text-[#1b5e20] text-center mb-1">Confirm Admin Action</h2>
+            <p className="text-sm text-gray-500 text-center mb-5">
+              Enter the code sent to your phone to {otpModal.label}.
+            </p>
+            {otpError && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 text-center">{otpError}</div>}
+            <input
+              type="text" inputMode="numeric" maxLength={6}
+              value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ""))}
+              placeholder="••••••" autoFocus
+              className="w-full p-4 border-2 border-gray-200 rounded-lg text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-[#43a047] mb-4"
+            />
+            <button onClick={submitReleaseOtp} disabled={otpLoading || otpCode.length < 6}
+              className="w-full bg-[#1b5e20] text-white py-3 rounded-lg font-bold hover:bg-[#0d3818] disabled:opacity-60 mb-2">
+              {otpLoading ? "Confirming..." : "Confirm"}
+            </button>
+            <button onClick={() => { setOtpModal(null); setOtpCode(""); }}
+              className="w-full text-sm text-gray-500 py-2 hover:text-gray-700">Cancel</button>
+          </div>
+        </div>
+      )}
+        </div>
     </div>
+
   );
 }
