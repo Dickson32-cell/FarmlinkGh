@@ -5,13 +5,40 @@ import { detectNetwork } from "@/lib/otp";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, phone, password, role, ghanaCardUrl, profile } = await req.json();
+    const { name, phone, password, role, ghanaCardUrl, idType, idNumber, passportUrl, profile } = await req.json();
     if (!name || !phone || !password || !role) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
     }
-    if (!ghanaCardUrl) {
-      return NextResponse.json({ error: "Ghana Card photo is required for verification" }, { status: 400 });
+
+    // Identity verification — Ghana Card (strict format) or Passport
+    const ID = String(idType || "ghana-card");
+    if (ID === "ghana-card") {
+      if (!ghanaCardUrl) {
+        return NextResponse.json({ error: "Ghana Card photo is required for verification" }, { status: 400 });
+      }
+      // Ghana Card number: GHA-123456789-0 (GHA + 9 digits + check digit)
+      const num = String(idNumber || "").toUpperCase().trim();
+      if (!/^GHA-\d{9}-\d$/.test(num)) {
+        return NextResponse.json(
+          { error: "Ghana Card number must look like GHA-123456789-0" },
+          { status: 400 }
+        );
+      }
+    } else if (ID === "passport") {
+      if (!passportUrl) {
+        return NextResponse.json({ error: "Passport photo page is required for verification" }, { status: 400 });
+      }
+      const num = String(idNumber || "").toUpperCase().trim();
+      if (num.length < 5 || num.length > 15) {
+        return NextResponse.json(
+          { error: "Enter a valid passport number (5-15 characters)" },
+          { status: 400 }
+        );
+      }
+    } else {
+      return NextResponse.json({ error: "Invalid ID type" }, { status: 400 });
     }
+
     const existing = await prisma.user.findUnique({ where: { phone } });
     if (existing) {
       return NextResponse.json({ error: "Phone number already registered" }, { status: 409 });
@@ -24,7 +51,10 @@ export async function POST(req: NextRequest) {
         password: hashed,
         role,
         status: "pending",
-        ghanaCardUrl,
+        ghanaCardUrl: ID === "ghana-card" ? ghanaCardUrl : "",
+        passportUrl: ID === "passport" ? passportUrl : "",
+        idType: ID,
+        idNumber: String(idNumber || "").toUpperCase().trim(),
         lastNetwork: detectNetwork(phone),
       },
     });

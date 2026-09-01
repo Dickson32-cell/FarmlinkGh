@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 interface PendingUser {
   id: string; name: string; phone: string; role: string;
   status: string; ghanaCardUrl: string; createdAt: string;
+  idType: string; idNumber: string; passportUrl: string;
 }
 
 interface Order {
@@ -240,22 +241,29 @@ export default function Admin() {
                       <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">Pending</span>
                     </div>
 
-                    {/* Ghana Card Preview */}
+                    {/* ID document preview + number to verify against photo */}
                     <div className="mb-4">
-                      <div className="text-xs font-semibold uppercase text-gray-500 mb-2">🪪 Ghana Card</div>
-                      {u.ghanaCardUrl ? (
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-semibold uppercase text-gray-500">
+                          {u.idType === "passport" ? "📄 Passport" : "🪪 Ghana Card"}
+                        </div>
+                        <div className="font-mono text-xs font-bold text-[#1b5e20] bg-[#e8f5e9] border border-[#43a047] px-2.5 py-1 rounded-lg">
+                          {u.idNumber || "— no number —"}
+                        </div>
+                      </div>
+                      {(u.idType === "passport" ? u.passportUrl : u.ghanaCardUrl) ? (
                         <button
-                          onClick={() => setCardModal(u.ghanaCardUrl)}
+                          onClick={() => setCardModal(u.idType === "passport" ? u.passportUrl : u.ghanaCardUrl)}
                           className="relative w-full h-36 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-[#1b5e20] transition-colors group"
                         >
-                          <img src={u.ghanaCardUrl} alt="Ghana Card" className="w-full h-full object-cover" />
+                          <img src={u.idType === "passport" ? u.passportUrl : u.ghanaCardUrl} alt={u.idType === "passport" ? "Passport" : "Ghana Card"} className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                             <span className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 text-xs font-semibold px-3 py-1 rounded-full transition-opacity">🔍 Click to enlarge</span>
                           </div>
                         </button>
                       ) : (
                         <div className="w-full h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
-                          No card uploaded
+                          No document uploaded
                         </div>
                       )}
                     </div>
@@ -264,9 +272,9 @@ export default function Admin() {
                     <div className="bg-gray-50 rounded-lg p-3 mb-4 text-xs text-gray-600">
                       <div className="font-semibold mb-1">Verify before approving:</div>
                       <ul className="space-y-0.5 list-disc list-inside">
-                        <li>Card photo is clear and readable</li>
-                        <li>Name on card matches: <strong>{u.name}</strong></li>
-                        <li>Card appears genuine</li>
+                        <li>Number above matches the document photo exactly</li>
+                        <li>Name on document matches: <strong>{u.name}</strong></li>
+                        <li>Document appears clear and genuine</li>
                       </ul>
                     </div>
 

@@ -15,6 +15,10 @@ model User {
   role          String    @default("farmer") // farmer, buyer, admin
   status        String    @default("pending") // pending, approved, rejected
   ghanaCardUrl  String    @default("")
+  // Identity verification: Ghana Card (GHA-XXXXXXXXX-X) or Passport
+  idType        String    @default("ghana-card") // ghana-card | passport
+  idNumber      String    @default("") // GHA-123456789-0 or passport number
+  passportUrl   String    @default("") // passport photo page (when idType=passport)
   twoFactorEnabled Boolean @default(true) // OTP on every login (opt-out possible)
   lastNetwork      String   @default("")   // MTN / Telecel / AT detected at registration
   failedLogins     Int      @default(0)    // consecutive failed password attempts

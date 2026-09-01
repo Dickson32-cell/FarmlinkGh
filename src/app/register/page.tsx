@@ -18,7 +18,10 @@ function RegisterForm() {
   const [mainCrops, setMainCrops] = useState("");
   const [businessType, setBusinessType] = useState("Market Trader");
   const [lookingFor, setLookingFor] = useState("");
+  const [idType, setIdType] = useState<"ghana-card" | "passport">("ghana-card");
+  const [idNumber, setIdNumber] = useState("");
   const [ghanaCardUrl, setGhanaCardUrl] = useState("");
+  const [passportUrl, setPassportUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,18 +32,29 @@ function RegisterForm() {
     if (r === "farmer" || r === "buyer") setRole(r);
   }, [params]);
 
-  const handleCardUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Auto-format Ghana Card number: GHA-123456789-0 as the user types digits
+  const formatGhanaCard = (raw: string) => {
+    // strip everything except digits, cap at 10 (9 + check digit)
+    const digits = raw.replace(/\D/g, "").slice(0, 10);
+    let out = "GHA";
+    if (digits.length > 0) out += "-" + digits.slice(0, 9);
+    if (digits.length === 10) out += "-" + digits[9];
+    return out;
+  };
+
+  const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     setError("");
     const fd = new FormData();
     fd.append("file", file);
-    fd.append("kind", "ghana-card"); // private — visible only to owner + verified admin
+    fd.append("kind", idType === "ghana-card" ? "ghana-card" : "passport"); // private — owner + verified admin only
     const res = await fetch("/api/upload", { method: "POST", body: fd });
     const data = await res.json();
     if (data.url) {
-      setGhanaCardUrl(data.url);
+      if (idType === "ghana-card") setGhanaCardUrl(data.url);
+      else setPassportUrl(data.url);
     } else {
       setError(data.error || "Upload failed. Please try again.");
     }
@@ -61,7 +75,7 @@ function RegisterForm() {
       // Profile fields ride in the register payload — there is no session
       // cookie yet (pending accounts), so a separate /api/profile PATCH
       // would 401 and lose them.
-      body: JSON.stringify({ name, phone, password, role, ghanaCardUrl, profile }),
+      body: JSON.stringify({ name, phone, password, role, ghanaCardUrl, idType, idNumber, passportUrl, profile }),
     });
     const data = await res.json();
     if (res.ok) {
@@ -112,38 +126,88 @@ function RegisterForm() {
     );
   }
 
-  // ─── Step 2: Ghana Card Upload ───────────────────────────────────────────────
+  // ─── Step 2: Identity Verification Upload ────────────────────────────────────
+  const idFileUrl = idType === "ghana-card" ? ghanaCardUrl : passportUrl;
+  const idNumberValid =
+    idType === "ghana-card" ? /^GHA-\d{9}-\d$/.test(idNumber) : idNumber.trim().length >= 5;
+
   if (step === 2) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1b5e20] to-[#0d3818] p-4">
-        <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-lg">
+        <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-lg max-h-[92vh] overflow-y-auto">
           {/* Progress */}
           <div className="flex items-center gap-2 mb-6">
             <div className="flex-1 h-1 rounded-full bg-[#1b5e20]" />
             <div className="flex-1 h-1 rounded-full bg-[#1b5e20]" />
             <div className="flex-1 h-1 rounded-full bg-gray-200" />
           </div>
-          <h1 className="text-xl font-bold text-[#1b5e20] mb-1">Upload Ghana Card</h1>
-          <p className="text-sm text-gray-500 mb-6">We need a clear photo of your Ghana Card to verify your identity. This is required by FarmLink for all users.</p>
+          <h1 className="text-xl font-bold text-[#1b5e20] mb-1">Identity Verification</h1>
+          <p className="text-sm text-gray-500 mb-4">
+            We verify every member&apos;s identity before they can trade. Choose your ID type.
+          </p>
 
           {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
 
-          <div className="mb-6">
-            <label className="text-xs font-semibold uppercase text-gray-500">Ghana Card Photo (front side required)</label>
+          {/* ID type toggle */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <button
+              type="button"
+              onClick={() => { setIdType("ghana-card"); setError(""); }}
+              className={`p-3 rounded-lg border-2 font-semibold text-sm ${idType === "ghana-card" ? "border-[#1b5e20] bg-[#e8f5e9] text-[#1b5e20]" : "border-gray-200 text-gray-500"}`}
+            >🪪 Ghana Card</button>
+            <button
+              type="button"
+              onClick={() => { setIdType("passport"); setError(""); }}
+              className={`p-3 rounded-lg border-2 font-semibold text-sm ${idType === "passport" ? "border-[#e65100] bg-[#fff3e0] text-[#e65100]" : "border-gray-200 text-gray-500"}`}
+            >🌐 No Ghana Card? Use Passport</button>
+          </div>
+
+          {/* ID number */}
+          <div className="mb-5">
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              {idType === "ghana-card" ? "Ghana Card Number" : "Passport Number"}
+            </label>
+            {idType === "ghana-card" ? (
+              <>
+                <input
+                  type="text"
+                  value={idNumber}
+                  onChange={(e) => setIdNumber(formatGhanaCard(e.target.value))}
+                  placeholder="GHA-123456789-0"
+                  className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none font-mono tracking-wide"
+                />
+                <div className="text-xs text-gray-400 mt-1">Format: GHA-123456789-0 — as printed on your card</div>
+              </>
+            ) : (
+              <input
+                type="text"
+                value={idNumber}
+                onChange={(e) => setIdNumber(e.target.value.toUpperCase())}
+                placeholder="e.g. A1234567"
+                className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none font-mono tracking-wide"
+              />
+            )}
+          </div>
+
+          {/* Upload */}
+          <div className="mb-5">
+            <label className="text-xs font-semibold uppercase text-gray-500">
+              {idType === "ghana-card" ? "Ghana Card Photo (front side required)" : "Passport Photo Page (required)"}
+            </label>
             <div className="mt-2">
-              {ghanaCardUrl ? (
+              {idFileUrl ? (
                 <div className="relative">
-                  <img src={ghanaCardUrl} alt="Ghana Card" className="w-full h-48 object-cover rounded-xl border-2 border-[#43a047]" />
+                  <img src={idFileUrl} alt={idType === "ghana-card" ? "Ghana Card" : "Passport"} className="w-full h-48 object-cover rounded-xl border-2 border-[#43a047]" />
                   <button
                     type="button"
-                    onClick={() => setGhanaCardUrl("")}
+                    onClick={() => { idType === "ghana-card" ? setGhanaCardUrl("") : setPassportUrl(""); }}
                     className="absolute top-2 right-2 bg-red-600 text-white w-7 h-7 rounded-full text-sm font-bold"
                   >✕</button>
-                  <div className="absolute bottom-2 left-2 bg-[#1b5e20] text-white text-xs px-2 py-1 rounded-lg">✓ Card uploaded</div>
+                  <div className="absolute bottom-2 left-2 bg-[#1b5e20] text-white text-xs px-2 py-1 rounded-lg">✓ Uploaded</div>
                 </div>
               ) : (
                 <label className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-[#43a047] block transition-colors">
-                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCardUpload} className="hidden" />
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleIdUpload} className="hidden" />
                   {uploading ? (
                     <div className="text-gray-500">
                       <div className="text-3xl mb-2">⏳</div>
@@ -151,8 +215,10 @@ function RegisterForm() {
                     </div>
                   ) : (
                     <div className="text-gray-400">
-                      <div className="text-4xl mb-3">🪪</div>
-                      <div className="font-semibold text-gray-600 mb-1">Click to upload Ghana Card</div>
+                      <div className="text-4xl mb-3">{idType === "ghana-card" ? "🪪" : "📄"}</div>
+                      <div className="font-semibold text-gray-600 mb-1">
+                        Click to upload {idType === "ghana-card" ? "Ghana Card" : "Passport photo page"}
+                      </div>
                       <div className="text-xs">JPEG, PNG or WebP • Max 5MB</div>
                     </div>
                   )}
@@ -162,7 +228,7 @@ function RegisterForm() {
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-xs text-amber-700">
-            <strong>Tips for a good photo:</strong> Ensure the card is well-lit, all text is clearly readable, and the photo is not blurry or cropped.
+            <strong>Admin will verify:</strong> the {idType === "ghana-card" ? "card number" : "passport number"} you entered must match the document in the photo exactly. Mismatches are rejected.
           </div>
 
           <div className="flex gap-3">
@@ -174,7 +240,7 @@ function RegisterForm() {
             <button
               type="button"
               onClick={submit}
-              disabled={!ghanaCardUrl || loading}
+              disabled={!idFileUrl || !idNumberValid || loading}
               className="flex-1 bg-[#1b5e20] text-white py-3 rounded-lg font-semibold hover:bg-[#0d3818] disabled:opacity-50"
             >{loading ? "Submitting..." : "Submit Registration"}</button>
           </div>

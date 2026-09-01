@@ -6,10 +6,12 @@ import { getSession, getAdminSession } from "@/lib/session";
 //
 // Access rules:
 //   kind = "listing"    → public (market page images)
-//   kind = "ghana-card" → PRIVATE. Only:
+//   kind = "ghana-card" | "passport" → PRIVATE. Only:
 //                            1. a verified admin session (adminVerified cookie), or
 //                            2. the owner (same user session cookie)
 //                         may view it. Everyone else gets 404.
+const PRIVATE_KINDS = ["ghana-card", "passport"];
+
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
 
@@ -21,12 +23,12 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   }
   if (!file) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (file.kind === "ghana-card") {
+  if (PRIVATE_KINDS.includes(file.kind)) {
     const admin = await getAdminSession(req);
     if (!admin) {
       const session = await getSession(req);
       if (!session || session.userId !== file.ownerId) {
-        // Do not reveal existence — Ghana cards are sensitive PII
+        // Do not reveal existence — ID documents are sensitive PII
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
     }
@@ -38,7 +40,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     headers: {
       "Content-Type": file.mimeType,
       "Content-Length": String(data.length),
-      "Cache-Control": file.kind === "ghana-card" ? "private, no-store" : "public, max-age=31536000, immutable",
+      "Cache-Control": PRIVATE_KINDS.includes(file.kind) ? "private, no-store" : "public, max-age=31536000, immutable",
     },
   });
 }
