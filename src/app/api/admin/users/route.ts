@@ -36,6 +36,13 @@ export async function PATCH(req: NextRequest) {
         data: { status: action === "approve" ? "approved" : "rejected" },
     });
 
+    // Rejected users lose their profile rows: they are not platform members.
+    // (Their User row stays for audit; re-registration replaces it cleanly.)
+    if (action === "reject") {
+        await prisma.farmer.deleteMany({ where: { userId } }).catch(() => { });
+        await prisma.buyer.deleteMany({ where: { userId } }).catch(() => { });
+    }
+
     await prisma.auditLog.create({
         data: {
             actorId: session.userId,
