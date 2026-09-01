@@ -148,6 +148,15 @@ model OtpCode {
   @@index([purpose, createdAt])
 }
 
+// Farmer-added products. When a farmer lists a crop that isn't in the built-in
+// ghanaCrops list, it's saved here so it appears in suggestions for everyone.
+model Product {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdBy String?  // farmer's userId
+  createdAt DateTime @default(now())
+}
+
 // Uploaded files (Ghana Cards, listing photos).
 // Stored as BYTEA in Postgres so uploads survive Vercel's read-only filesystem.
 // kind = "ghana-card" (private — only the admin + owner can view)

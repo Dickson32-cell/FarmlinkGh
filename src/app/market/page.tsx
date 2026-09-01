@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ghanaRegions, ghanaTowns, ghanaCrops } from "@/lib/ghana-data";
+import { PriceInput, ProductInput } from "@/components/produceInputs";
 
 interface Listing { id: string; crop: string; quantity: number; price: number; grade: string; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes?: string; farmer?: { name: string; phone: string; }; }
 
@@ -17,8 +18,13 @@ export default function Market() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const crops = ghanaCrops;
+  const [farmerProducts, setFarmerProducts] = useState<string[]>([]);
   const regions = ghanaRegions;
+
+  useEffect(() => {
+    fetch("/api/products").then((r) => r.json()).then((names) => { if (Array.isArray(names)) setFarmerProducts(names); }).catch(() => { });
+  }, []);
+  const crops = Array.from(new Set([...ghanaCrops, ...farmerProducts])).sort((a, b) => a.localeCompare(b));
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setUser(d.user || null));
@@ -127,19 +133,16 @@ export default function Market() {
               </div>
             )}
             <div>
-              <label className="text-xs font-semibold uppercase text-gray-500">Crop</label>
-              <input type="text" list="crop-list" value={form.crop} onChange={(e) => setForm({ ...form, crop: e.target.value })} placeholder="Select or type your crop" className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" required />
-              <datalist id="crop-list">
-                {crops.map((c) => <option key={c} value={c} />)}
-              </datalist>
+              <label className="text-xs font-semibold uppercase text-gray-500">Product</label>
+              <ProductInput id="market" value={form.crop} onChange={(v) => setForm({ ...form, crop: v })} builtinCrops={ghanaCrops} required />
             </div>
             <div>
               <label className="text-xs font-semibold uppercase text-gray-500">Quantity (bags)</label>
               <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" required />
             </div>
             <div>
-              <label className="text-xs font-semibold uppercase text-gray-500">Price per bag (GH₵)</label>
-              <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" required />
+              <label className="text-xs font-semibold uppercase text-gray-500">Price per bag</label>
+              <PriceInput value={form.price} onChange={(v) => setForm({ ...form, price: v })} required />
             </div>
             <div>
               <label className="text-xs font-semibold uppercase text-gray-500">Region</label>

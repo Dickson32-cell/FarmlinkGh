@@ -3,6 +3,7 @@ import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ghanaRegions, ghanaTowns, ghanaCrops } from "@/lib/ghana-data";
+import { PriceInput, ProductInput } from "@/components/produceInputs";
 
 interface User { id: string; name: string; role: string; phone: string; }
 interface Listing { id: string; crop: string; quantity: number; price: number; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes: string | null; images: string; farmer?: { name: string; phone: string; }; }
@@ -195,17 +196,16 @@ export default function Dashboard() {
                   </div>
                 )}
                 <div>
-                  <label className="text-xs font-semibold uppercase text-gray-500">Crop</label>
-                  <input type="text" list="add-crop-list" value={addForm.crop} onChange={(e) => setAddForm({ ...addForm, crop: e.target.value })} placeholder="Select or type crop" className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" required />
-                  <datalist id="add-crop-list">{ghanaCrops.map((c) => <option key={c} value={c} />)}</datalist>
+                  <label className="text-xs font-semibold uppercase text-gray-500">Product</label>
+                  <ProductInput id="add" value={addForm.crop} onChange={(v) => setAddForm({ ...addForm, crop: v })} builtinCrops={ghanaCrops} required />
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Quantity (bags)</label>
                   <input type="number" min="1" value={addForm.quantity} onChange={(e) => setAddForm({ ...addForm, quantity: e.target.value })} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" required />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold uppercase text-gray-500">Price per bag (GH₵)</label>
-                  <input type="number" min="0" step="0.01" value={addForm.price} onChange={(e) => setAddForm({ ...addForm, price: e.target.value })} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" required />
+                  <label className="text-xs font-semibold uppercase text-gray-500">Price per bag</label>
+                  <PriceInput value={addForm.price} onChange={(v) => setAddForm({ ...addForm, price: v })} required />
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
@@ -298,16 +298,16 @@ export default function Dashboard() {
                       <td colSpan={7} className="p-4">
                         <form onSubmit={saveEdit} className="grid md:grid-cols-3 gap-3">
                           <div>
-                            <label className="text-xs font-semibold uppercase text-gray-500">Crop</label>
-                            <input type="text" value={editForm.crop} onChange={(e) => setEditForm({ ...editForm, crop: e.target.value })} className="w-full p-2 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" required />
+                            <label className="text-xs font-semibold uppercase text-gray-500">Product</label>
+                            <ProductInput id="edit" value={editForm.crop} onChange={(v) => setEditForm({ ...editForm, crop: v })} builtinCrops={ghanaCrops} required />
                           </div>
                           <div>
                             <label className="text-xs font-semibold uppercase text-gray-500">Quantity (bags)</label>
                             <input type="number" value={editForm.quantity} onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} className="w-full p-2 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" required />
                           </div>
                           <div>
-                            <label className="text-xs font-semibold uppercase text-gray-500">Price (GH₵)</label>
-                            <input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} className="w-full p-2 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" required />
+                            <label className="text-xs font-semibold uppercase text-gray-500">Price per bag</label>
+                            <PriceInput value={editForm.price} onChange={(v) => setEditForm({ ...editForm, price: v })} required />
                           </div>
                           <div>
                             <label className="text-xs font-semibold uppercase text-gray-500">Location (town)</label>

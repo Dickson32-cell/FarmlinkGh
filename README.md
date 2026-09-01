@@ -15,7 +15,7 @@ FarmLink Ghana is a marketplace connecting farmers directly with bulk buyers (re
 | Database | Neon PostgreSQL (serverless) |
 | ORM | Prisma 6 |
 | Auth | JWT sessions (jose) + SMS OTP (Arkesel) + **Admin email codes** |
-| Payments | Paystack (GHS) + manual MoMo fallback |
+| Payments | **Paystack (GHS)** — primary; manual MoMo fallback to ADMIN_MOMO |
 | Hosting | Vercel (auto-deploy from `main` branch) |
 | Uploads | Files stored in Postgres (BYTEA), served via `/api/files/[id]` |
 
@@ -46,13 +46,20 @@ Cards are stored **inside the database** and are **PRIVATE**:
 
 All values live in the local `.env` (never committed).
 
-## Logins (seeded demo accounts)
+## Logins (production)
 
 | Role | Phone | Password |
 |------|-------|----------|
-| **Admin** | 0244000000 | admin123 *(change after first login)* |
-| Farmer | 0244111222 (Kofi Asante) | farmer123 |
-| Buyer | 0201112222 (Grace Food Supplies) | buyer123 |
+| **Admin** | 0248847819 | *(strong password — rotate from the login page)* |
+
+Production DB holds **only real accounts** — there is no demo data. `prisma/seed.ts`
+creates the admin account only (for fresh databases); it creates **zero** demo
+farmers/buyers/listings/prices. Real farmers and buyers register through the site.
+
+**Payments:** Paystack is the primary provider. Test keys are currently configured;
+swap `PAYSTACK_SECRET_KEY` / `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` in Vercel for live
+keys when going live. If Paystack is unavailable, buyers see manual MoMo
+instructions to ADMIN_MOMO (0248847819).
 
 ## Development
 

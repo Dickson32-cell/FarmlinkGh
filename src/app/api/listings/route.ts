@@ -34,6 +34,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const farmer = await prisma.farmer.findUnique({ where: { userId: session.userId } });
     if (!farmer) return NextResponse.json({ error: "Farmer profile not found" }, { status: 404 });
+
+    // Register the crop as a product if it's new — so it appears in
+    // suggestions for every farmer from then on.
+    const cropName = String(body.crop || "").trim();
+    if (cropName) {
+      await prisma.product.upsert({
+        where: { name: cropName },
+        update: {},
+        create: { name: cropName, createdBy: session.userId },
+      }).catch(() => { /* non-fatal */ });
+    }
+
     const listing = await prisma.listing.create({
       data: {
         crop: body.crop,
