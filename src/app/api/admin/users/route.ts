@@ -50,8 +50,8 @@ export async function PATCH(req: NextRequest) {
     // (console provider logs it in dev — real SMS via Arkesel in production.)
     const sms =
         action === "approve"
-            ? `FarmLink: Good news ${user.name}! Your identity has been verified and your ${user.role} account is now active. Log in at framlinkgh.vercel.app to start.`
-            : `FarmLink: ${user.name}, your account was not approved. Contact support 0595726252 / info.rametechconsultancy@gmail.com or re-register with a clear Ghana Card/passport photo.`;
+            ? `FarmLink: ${user.name}, your ${user.role} account is now active. Log in at framlinkgh.vercel.app to start.`
+            : `FarmLink: ${user.name}, your account was not approved. Re-register with a valid Ghana Card or call 0595726252.`;
     const { sent } = await sendSms(user.phone, sms).catch(() => ({ sent: false }));
 
     return NextResponse.json({ id: user.id, status: user.status, smsSent: sent });

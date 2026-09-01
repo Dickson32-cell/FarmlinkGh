@@ -76,9 +76,34 @@ export async function verifyOtp(phone: string, code: string, purpose = "login") 
 
 // ---------- SMS gateway (pluggable) ----------
 // SMS_PROVIDER: "console" (dev) | "arkesel" | "hubtel"
-export async function sendSms(phone: string, message: string): Promise<{ sent: boolean; provider: string }> {
+//
+// SMS hygiene rules (learned the hard way — see Joseph's mangled follow-up):
+// 1. ONE page only. Messages over 160 GSM chars get split by the carrier and
+//    reassembly on cheap handsets corrupts them (Joseph's 2-page SMS arrived
+//    with the "@" dropped). Hard cap: 160.
+// 2. GSM-7 alphabet only. The cedi sign "₵" and other unicode force UCS-2
+//    encoding which halves the page size to 70 chars and confuses carriers.
+//    Money is written as "GHS" in SMS; "GH₵" stays in the web UI only.
+function smsSanitize(raw: string): string {
+  let m = raw
+    .replace(/GH₵/gi, "GHS")       // "GH₵240" (money) → "GHS240"
+    .replace(/₵/g, "GHS ")         // any lone cedi sign
+    .replace(/[→…–—]/g, "-")       // unicode arrows/dashes → hyphen
+    .replace(/[^\x20-\x7E]/g, ""); // strip all remaining non-ASCII
+  // squeeze doubled spaces created by the replacements
+  m = m.replace(/ {2,}/g, " ").trim();
+  // hard cap at 160 GSM chars — never send a second page
+  if (m.length > 160) m = m.slice(0, 157).trimEnd() + "...";
+  return m;
+}
+
+export async function sendSms(phone: string, rawMessage: string): Promise<{ sent: boolean; provider: string }> {
   const provider = process.env.SMS_PROVIDER || "console";
   const to = phone.replace(/^0/, "233");
+  const message = smsSanitize(rawMessage);
+  if (message.length > 160) {
+    console.error(`[SMS] BUG: message for ${phone} still >160 after sanitize:`, rawMessage);
+  }
 
   try {
     if (provider === "arkesel") {

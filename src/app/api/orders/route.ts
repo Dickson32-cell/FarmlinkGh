@@ -140,7 +140,7 @@ export async function PATCH(req: NextRequest) {
         // confirm to the buyer
         const { sendSms } = await import("@/lib/otp");
         await sendSms(order.buyerPhone,
-          `FarmLink: Your refund of GH₵${order.totalAmount.toFixed(2)} for ${order.crop} has been sent. If you don't receive it within 24h, contact 0595726252 / info.rametechconsultancy@gmail.com.`)
+          `FarmLink: Your refund of GHS${order.totalAmount.toFixed(2)} for ${order.crop} has been sent. It arrives within 24h.`)
           .catch(() => { });
         try {
           await prisma.listing.update({
