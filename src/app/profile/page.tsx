@@ -118,13 +118,25 @@ export default function Profile() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold uppercase text-gray-500">Location</label>
-                  <input type="text" value={profile.location || ""} onChange={(e) => setProfile({ ...profile, location: e.target.value })} placeholder="e.g. Accra" className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" />
+                  <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
+                  <select value={profile.region || ""} onChange={(e) => setProfile({ ...profile, region: e.target.value, location: "" })} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]">
+                    <option value="">Select region</option>
+                    {regions.map((r) => <option key={r}>{r}</option>)}
+                  </select>
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-gray-500">Looking For (crops)</label>
-                <input type="text" value={profile.lookingFor || ""} onChange={(e) => setProfile({ ...profile, lookingFor: e.target.value })} placeholder="e.g. Tomatoes, Pepper, Maize" className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold uppercase text-gray-500">Town</label>
+                  <input type="text" list="buyer-profile-town-list" value={profile.location || ""} onChange={(e) => setProfile({ ...profile, location: e.target.value })} placeholder="Select or type your town" className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" />
+                  <datalist id="buyer-profile-town-list">
+                    {(ghanaTowns[profile.region || ""] || []).map((t) => <option key={t} value={t} />)}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase text-gray-500">Looking For (crops)</label>
+                  <input type="text" value={profile.lookingFor || ""} onChange={(e) => setProfile({ ...profile, lookingFor: e.target.value })} placeholder="e.g. Tomatoes, Pepper, Maize" className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" />
+                </div>
               </div>
             </div>
           )}

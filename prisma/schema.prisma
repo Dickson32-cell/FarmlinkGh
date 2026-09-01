@@ -48,6 +48,7 @@ model Buyer {
   name         String
   phone        String
   businessType String
+  region       String   @default("")
   location     String
   lookingFor   String
   createdAt    DateTime @default(now())

@@ -70,7 +70,8 @@ function RegisterForm() {
         await fetch("/api/profile", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessType, location, lookingFor }),
+          // location = town; buyer.region is new — same dropdown pattern as farmers
+          body: JSON.stringify({ businessType, region, location: town, lookingFor }),
         }).catch(() => { });
       }
       setStep(3); // Show pending confirmation
@@ -261,13 +262,22 @@ function RegisterForm() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold uppercase text-gray-500">Location</label>
-                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" />
+                  <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
+                  <select value={region} onChange={(e) => { setRegion(e.target.value); setTown(""); }} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none">
+                    {regions.map((r) => <option key={r}>{r}</option>)}
+                  </select>
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-gray-500">Looking For (crops)</label>
-                <input type="text" value={lookingFor} onChange={(e) => setLookingFor(e.target.value)} placeholder="Tomatoes, Pepper, Maize" className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase text-gray-500">Town</label>
+                  <input type="text" list="buyer-town-list" value={town} onChange={(e) => setTown(e.target.value)} placeholder="Select or type your town" className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" />
+                  <datalist id="buyer-town-list">{(ghanaTowns[region] || []).map((t) => <option key={t} value={t} />)}</datalist>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase text-gray-500">Looking For (crops)</label>
+                  <input type="text" value={lookingFor} onChange={(e) => setLookingFor(e.target.value)} placeholder="Tomatoes, Pepper, Maize" className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" />
+                </div>
               </div>
             </>
           )}

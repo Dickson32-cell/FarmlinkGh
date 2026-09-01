@@ -32,7 +32,12 @@ export async function PATCH(req: NextRequest) {
     } else {
       const buyer = await prisma.buyer.update({
         where: { userId: session.userId },
-        data: { businessType: body.businessType, location: body.location, lookingFor: body.lookingFor },
+        data: {
+          businessType: body.businessType,
+          region: body.region ?? undefined,
+          location: body.location,
+          lookingFor: body.lookingFor,
+        },
       });
       return NextResponse.json(buyer);
     }
