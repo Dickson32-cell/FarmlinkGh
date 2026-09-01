@@ -41,7 +41,17 @@ export async function POST(req: NextRequest) {
 
     const existing = await prisma.user.findUnique({ where: { phone } });
     if (existing) {
-      return NextResponse.json({ error: "Phone number already registered" }, { status: 409 });
+      // Rejected users get a fresh start: their old account is replaced so
+      // they can re-register with a better photo/number as the rejection
+      // message instructs. Pending/approved accounts still block the phone.
+      if (existing.status === "rejected") {
+        await prisma.farmer.deleteMany({ where: { userId: existing.id } }).catch(() => {});
+        await prisma.buyer.deleteMany({ where: { userId: existing.id } }).catch(() => {});
+        await prisma.storedFile.deleteMany({ where: { ownerId: existing.id } }).catch(() => {});
+        await prisma.user.delete({ where: { id: existing.id } });
+      } else {
+        return NextResponse.json({ error: "Phone number already registered" }, { status: 409 });
+      }
     }
     const hashed = await hashPassword(password);
     const user = await prisma.user.create({
