@@ -95,6 +95,16 @@ export async function POST(req: NextRequest) {
       });
     }
     // No session cookie — user must be approved by admin before login
+    // ADMIN ALERT: instant SMS to the admin so approvals happen fast
+    try {
+      const { sendSms } = await import("@/lib/otp");
+      await sendSms(
+        process.env.ADMIN_MOMO || "0248847819",
+        `FarmLink: New ${role} registration - ${name} (${phone}). Approve in admin panel.`,
+      );
+    } catch (err) {
+      console.error("[ADMIN-ALERT-SMS] registration alert failed:", String(err).slice(0, 120));
+    }
     return NextResponse.json({ success: true, message: "Registration submitted. Verification takes 2-3 working days." });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

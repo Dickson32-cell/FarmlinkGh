@@ -139,8 +139,11 @@ export default function Login() {
           <>
             <p className="text-sm text-gray-600 text-center mb-1">Enter the 6-digit code we sent to</p>
             <p className="text-lg font-bold text-center text-[#1b5e20] mb-1">{maskedPhone}</p>
-            <p className="text-xs text-center text-gray-400 mb-5">
+            <p className="text-xs text-center text-gray-400 mb-2">
               {network && network !== "Unknown" ? `📱 ${network} network · ` : ""}Code valid for 10 minutes
+            </p>
+            <p className="text-xs text-center text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+              SMS can take up to 5 minutes to arrive. Please wait before resending — requesting again cancels the previous code.
             </p>
             {devCode && (
               <div className="bg-blue-50 text-blue-700 text-xs p-3 rounded-lg mb-4 text-center">

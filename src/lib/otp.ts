@@ -97,7 +97,7 @@ function smsSanitize(raw: string): string {
   return m;
 }
 
-export async function sendSms(phone: string, rawMessage: string): Promise<{ sent: boolean; provider: string }> {
+export async function sendSms(phone: string, rawMessage: string): Promise<{ sent: boolean; provider: string; smsId?: string }> {
   const provider = process.env.SMS_PROVIDER || "console";
   const to = phone.replace(/^0/, "233");
   const message = smsSanitize(rawMessage);
@@ -123,10 +123,13 @@ export async function sendSms(phone: string, rawMessage: string): Promise<{ sent
       });
       const data = await res.json().catch(() => null);
       const ok = res.ok && (data as any)?.status === "success";
+      const smsId = (data as any)?.data?.[0]?.id as string | undefined;
       if (!ok) {
         console.error("Arkesel send failed:", res.status, data);
+      } else {
+        console.log(`[SMS-TRACK] to=${to} id=${smsId} :: ${message.slice(0, 60)}`);
       }
-      return { sent: !!ok, provider };
+      return { sent: !!ok, provider, smsId };
     }
 
     if (provider === "hubtel") {
