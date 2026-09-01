@@ -190,7 +190,7 @@ export default function ListingDetail() {
             {/* Farmer Contact */}
             <div className="bg-white rounded-xl shadow border-2 border-[#43a047] p-5">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold text-[#1b5e20]">👨‍🌾 Farmer Details</h2>
+                <h2 className="font-bold text-[#1b5e20]">Farmer Details</h2>
                 {avgRating && (
                   <div className="text-sm text-[#e65100] font-bold">
                     <Stars rating={Math.round(parseFloat(avgRating))} /> <span className="text-gray-500 font-normal">{avgRating} ({reviews.length})</span>
@@ -207,8 +207,8 @@ export default function ListingDetail() {
               </div>
               {listing.status === "available" && (
                 <div className="flex gap-3">
-                  <a href={`https://wa.me/233${listing.farmer.phone.replace(/^0/, "")}`} target="_blank" className="flex-1 bg-green-600 text-white text-center py-3 rounded-lg font-semibold hover:bg-green-700">💬 WhatsApp</a>
-                  <a href={`tel:${listing.farmer.phone}`} className="flex-1 bg-[#1b5e20] text-white text-center py-3 rounded-lg font-semibold hover:bg-[#0d3818]">📞 Call</a>
+                  <a href={`https://wa.me/233${listing.farmer.phone.replace(/^0/, "")}`} target="_blank" className="flex-1 bg-green-600 text-white text-center py-3 rounded-lg font-semibold hover:bg-green-700">WhatsApp</a>
+                  <a href={`tel:${listing.farmer.phone}`} className="flex-1 bg-[#1b5e20] text-white text-center py-3 rounded-lg font-semibold hover:bg-[#0d3818]">Call</a>
                 </div>
               )}
             </div>
@@ -216,14 +216,14 @@ export default function ListingDetail() {
             {/* Buy Now Section */}
             {user?.role === "buyer" && listing.status === "available" && (
               <div className="bg-white rounded-xl shadow border-2 border-[#e65100] p-5 mt-4">
-                <h2 className="font-bold text-[#e65100] mb-3">🛒 Buy Now</h2>
+                <h2 className="font-bold text-[#e65100] mb-3">Buy Now</h2>
                 {orderCreated ? (
                   <div className="space-y-2 text-sm">
                     <div className="font-semibold text-[#1b5e20]">Order created! Order ID: {orderCreated.order.id.slice(-8).toUpperCase()}</div>
                     {orderCreated.payData.mode === "manual" ? (
                       <div className="bg-[#e8f5e9] rounded-lg p-3">
                         <p>Send <strong>GH₵{orderCreated.payData.amount}</strong> via MoMo to:</p>
-                        <p className="text-2xl font-bold text-[#1b5e20]">📞 {orderCreated.payData.adminMomo}</p>
+                        <p className="text-2xl font-bold text-[#1b5e20]"> {orderCreated.payData.adminMomo}</p>
                         <p>Reference: <strong>{orderCreated.payData.reference}</strong></p>
                         <p className="text-gray-600 mt-1">After paying, go to your Orders page. Admin will confirm, then you confirm delivery.</p>
                         <Link href="/orders" className="inline-block mt-2 bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm">Go to My Orders →</Link>
@@ -266,7 +266,7 @@ export default function ListingDetail() {
         {/* Reviews Section */}
         <div className="mt-10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-[#1b5e20]">⭐ Farmer Reviews</h2>
+            <h2 className="text-xl font-bold text-[#1b5e20]">Farmer Reviews</h2>
             {user?.role === "buyer" && (
               <button onClick={() => setShowReviewForm(!showReviewForm)} className="bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm">
                 {showReviewForm ? "Cancel" : "+ Leave Review"}

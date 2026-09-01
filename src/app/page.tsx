@@ -2,6 +2,30 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+function IconLeaf() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-[#1b5e20]">
+      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.83-3.92 10-10 10Z" />
+      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+    </svg>
+  );
+}
+function IconSearch() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-[#e65100]">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+function IconChat() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-[#1b5e20]">
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [stats, setStats] = useState({ farmers: 0, buyers: 0, listings: 0 });
   const [hero, setHero] = useState("");
@@ -11,7 +35,7 @@ export default function Home() {
       .then((r) => r.json())
       .then(setStats)
       .catch(() => { });
-    // Admin-uploaded homepage hero image (kind=hero in SiteSetting "heroImage")
+    // Admin-uploaded homepage hero image (SiteSetting "heroImage")
     fetch("/api/settings?key=heroImage")
       .then((r) => r.json())
       .then((d) => setHero(d.value || ""))
@@ -42,19 +66,17 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero — admin's landscape image covers this section behind the text */}
-      <section className="relative text-white py-24 px-6 text-center overflow-hidden">
-        {/* default gradient when no hero image is uploaded yet */}
+      {/* Hero — admin's landscape image covers this section behind the text.
+          Desktop uses a taller min-height so wide photos aren't cropped to a sliver. */}
+      <section className="relative text-white py-24 md:py-36 lg:py-44 px-6 text-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#1b5e20] to-[#0d3818]" />
         {hero && (
           <>
-            {/* the admin-uploaded landscape image, covering the whole section */}
             <img
               src={hero}
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
             />
-            {/* dark overlay so the text stays readable on any photo */}
             <div className="absolute inset-0 bg-gradient-to-b from-[#0d3818]/75 via-[#0d3818]/55 to-[#0d3818]/80" />
           </>
         )}
@@ -68,17 +90,15 @@ export default function Home() {
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
               href="/register?role=farmer"
-              className="group px-7 py-3.5 rounded-full font-semibold bg-[#e65100] text-white shadow-lg hover:bg-[#ff6f00] hover:shadow-xl hover:-translate-y-0.5 transition-all"
+              className="px-7 py-3.5 rounded-full font-semibold bg-[#e65100] text-white shadow-lg hover:bg-[#ff6f00] hover:shadow-xl hover:-translate-y-0.5 transition-all"
             >
-              <span className="mr-2">👨‍🌾</span> Register as Farmer
-              <span className="inline-block ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
+              Register as Farmer
             </Link>
             <Link
               href="/register?role=buyer"
-              className="group px-7 py-3.5 rounded-full font-semibold bg-white text-[#1b5e20] shadow-lg hover:bg-gray-100 hover:shadow-xl hover:-translate-y-0.5 transition-all"
+              className="px-7 py-3.5 rounded-full font-semibold bg-white text-[#1b5e20] shadow-lg hover:bg-gray-100 hover:shadow-xl hover:-translate-y-0.5 transition-all"
             >
-              <span className="mr-2">🏪</span> Register as Buyer
-              <span className="inline-block ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
+              Register as Buyer
             </Link>
           </div>
         </div>
@@ -106,18 +126,24 @@ export default function Home() {
         <p className="text-center text-gray-500 text-sm mb-10">Three steps from farm to market</p>
         <div className="grid md:grid-cols-3 gap-6">
           <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all">
-            <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center text-2xl mb-4">👨‍🌾</div>
+            <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center mb-4">
+              <IconLeaf />
+            </div>
             <h3 className="font-bold mb-2 text-gray-800">1. Farmers List Produce</h3>
             <p className="text-sm text-gray-600 leading-relaxed">Post your crops, quantity, and price. Buyers find you directly.</p>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all">
-            <div className="w-12 h-12 rounded-xl bg-[#fff3e0] flex items-center justify-center text-2xl mb-4">🔍</div>
+            <div className="w-12 h-12 rounded-xl bg-[#fff3e0] flex items-center justify-center mb-4">
+              <IconSearch />
+            </div>
             <h3 className="font-bold mb-2 text-gray-800">2. Buyers Search</h3>
             <p className="text-sm text-gray-600 leading-relaxed">Browse available produce by crop, region, or price. No middlemen.</p>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all">
-            <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center text-2xl mb-4">💬</div>
-            <h3 className="font-bold mb-2 text-gray-800">3. Connect Directly</h3>
+            <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center mb-4">
+              <IconChat />
+            </div>
+ <h3 className="font-bold mb-2 text-gray-800">3. Connect Directly</h3>
             <p className="text-sm text-gray-600 leading-relaxed">WhatsApp or call the farmer directly. Negotiate and deal.</p>
           </div>
         </div>
@@ -131,14 +157,14 @@ export default function Home() {
           href="/prices"
           className="inline-block px-8 py-3.5 rounded-full font-semibold bg-[#e65100] text-white shadow-md hover:bg-[#ff6f00] hover:shadow-lg hover:-translate-y-0.5 transition-all"
         >
-          View Price Board →
+          View Price Board
         </Link>
       </section>
 
       <footer className="bg-[#0d3818] text-white text-center py-8 text-sm opacity-80">
         FarmLink Ghana &copy; 2026 — Connecting farmers with buyers
         <div className="text-xs opacity-60 mt-2">Support: 0595726252 · info.rametechconsultancy@gmail.com</div>
-        <div className="text-xs opacity-60 mt-1">framlinkgh.vercel.app</div>
+        <div className="text-xs opacity-55 mt-1">framlinkgh.vercel.app</div>
       </footer>
     </div>
   );

@@ -273,7 +273,7 @@ export default function Admin() {
             onClick={() => setActiveTab("verifications")}
             className={`px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 ${activeTab === "verifications" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
           >
-            🪪 Pending Verifications
+             Pending Verifications
             {pendingUsers.length > 0 && (
               <span className={`rounded-full text-xs font-bold px-2 py-0.5 ${activeTab === "verifications" ? "bg-white text-[#1b5e20]" : "bg-red-500 text-white"}`}>
                 {pendingUsers.length}
@@ -284,13 +284,13 @@ export default function Admin() {
             onClick={() => setActiveTab("orders")}
             className={`px-5 py-2.5 rounded-lg font-semibold text-sm ${activeTab === "orders" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
           >
-            📦 Orders ({stats.total})
+             Orders ({stats.total})
           </button>
           <button
             onClick={() => setActiveTab("users")}
             className={`px-5 py-2.5 rounded-lg font-semibold text-sm ${activeTab === "users" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
           >
-            👥 Users ({allUsers.length})
+             Users ({allUsers.length})
           </button>
         </div>
 
@@ -298,7 +298,7 @@ export default function Admin() {
         <div className="bg-white rounded-xl shadow border border-gray-200 p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-bold text-[#1b5e20]">🖼️ Homepage Hero Image</h3>
+              <h3 className="font-bold text-[#1b5e20]">Homepage Hero Image</h3>
               <p className="text-xs text-gray-500">A landscape photo covers the homepage banner behind the text</p>
             </div>
             {heroImage && (
@@ -329,7 +329,6 @@ export default function Admin() {
             <h2 className="text-lg font-bold text-[#1b5e20] mb-3">Pending Account Verifications</h2>
             {pendingUsers.length === 0 ? (
               <div className="bg-white rounded-xl shadow border border-gray-200 p-10 text-center text-gray-400">
-                <div className="text-4xl mb-3">✅</div>
                 <div className="font-semibold">No pending verifications</div>
                 <div className="text-sm">All registered users have been reviewed.</div>
               </div>
@@ -350,7 +349,7 @@ export default function Admin() {
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-xs font-semibold uppercase text-gray-500">
-                          {u.idType === "passport" ? "📄 Passport" : "🪪 Ghana Card"}
+                          {u.idType === "passport" ? "Passport" : "Ghana Card"}
                         </div>
                         <div className="font-mono text-xs font-bold text-[#1b5e20] bg-[#e8f5e9] border border-[#43a047] px-2.5 py-1 rounded-lg">
                           {u.idNumber || "— no number —"}
@@ -363,7 +362,7 @@ export default function Admin() {
                         >
                           <img src={u.idType === "passport" ? u.passportUrl : u.ghanaCardUrl} alt={u.idType === "passport" ? "Passport" : "Ghana Card"} className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                            <span className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 text-xs font-semibold px-3 py-1 rounded-full transition-opacity">🔍 Click to enlarge</span>
+                            <span className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 text-xs font-semibold px-3 py-1 rounded-full transition-opacity"> Click to enlarge</span>
                           </div>
                         </button>
                       ) : (
@@ -388,11 +387,11 @@ export default function Admin() {
                       <button
                         onClick={() => handleVerification(u.id, "approve")}
                         className="flex-1 bg-[#1b5e20] text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-[#0d3818]"
-                      >✅ Approve</button>
+                      >Approve</button>
                       <button
                         onClick={() => handleVerification(u.id, "reject")}
                         className="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-red-700"
-                      >❌ Reject</button>
+                      >Reject</button>
                     </div>
                   </div>
                 ))}
@@ -407,7 +406,6 @@ export default function Admin() {
             <h2 className="text-lg font-bold text-[#1b5e20] mb-3">All Users</h2>
             {allUsers.length === 0 ? (
               <div className="bg-white rounded-xl shadow border border-gray-200 p-10 text-center text-gray-400">
-                <div className="text-4xl mb-3">👥</div>
                 <div className="font-semibold">No registered users yet</div>
                 <div className="text-sm">Farmers and buyers will appear here when they sign up.</div>
               </div>
@@ -416,7 +414,7 @@ export default function Admin() {
                 {allUsers.map((u) => (
                   <div key={u.id} className="bg-white rounded-xl shadow border border-gray-200 p-4 flex items-center gap-4 flex-wrap">
                     <div className="w-12 h-12 rounded-full bg-[#e8f5e9] flex items-center justify-center text-xl shrink-0">
-                      {u.role === "farmer" ? "👨‍🌾" : "🏪"}
+                      {u.role === "farmer" ? " " : ""}
                     </div>
                     <div className="flex-1 min-w-[180px]">
                       <div className="font-bold">{u.name}</div>
@@ -443,17 +441,17 @@ export default function Admin() {
                           <button
                             onClick={() => handleVerification(u.id, "approve")}
                             className="bg-[#1b5e20] text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#0d3818]"
-                          >✅ Approve</button>
+                          >Approve</button>
                           <button
                             onClick={() => handleVerification(u.id, "reject")}
                             className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700"
-                          >❌ Reject</button>
+                          >Reject</button>
                         </>
                       )}
                       <button
                         onClick={() => handleDeleteUser(u.id, u.name)}
                         className="border-2 border-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-50"
-                      >🗑 Delete</button>
+                      >Delete</button>
                     </div>
                   </div>
                 ))}
@@ -508,8 +506,7 @@ export default function Admin() {
                       )}
                       {o.status === "paid" && <span className="text-sm text-gray-500 italic">Waiting for buyer to confirm delivery</span>}
                       {o.status === "delivered" && (
-                        <button onClick={() => updateOrderStatus(o.id, "released", "Payment released to farmer")} className="bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818]">
-                          💰 Release Payment to Farmer (GH₵{o.farmerPayout.toFixed(2)})
+                        <button onClick={() => updateOrderStatus(o.id, "released", "Payment released to farmer")} className="bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818]">Release Payment to Farmer (GH₵{o.farmerPayout.toFixed(2)})
                         </button>
                       )}
                       {o.status === "refund_requested" && (

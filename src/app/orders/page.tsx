@@ -119,12 +119,12 @@ export default function Orders() {
             paymentStatus === "amount_mismatch" ? "bg-red-50 text-red-700 border border-red-300" :
             "bg-amber-50 text-amber-700 border border-amber-200"
           }`}>
-            {paymentStatus === "success" && "✅ Payment confirmed! The admin has been notified to release payment to the farmer."}
-            {paymentStatus === "failed" && "❌ Payment was not completed. You can try paying again below."}
-            {paymentStatus === "amount_mismatch" && "⚠️ Payment amount did not match the order. Contact support — do not retry payment."}
+            {paymentStatus === "success" && " Payment confirmed! The admin has been notified to release payment to the farmer."}
+            {paymentStatus === "failed" && " Payment was not completed. You can try paying again below."}
+            {paymentStatus === "amount_mismatch" && " Payment amount did not match the order. Contact support — do not retry payment."}
             {paymentStatus === "already" && "ℹ️ This order was already processed."}
-            {paymentStatus === "notfound" && "⚠️ Order not found for this payment reference."}
-            {paymentStatus === "error" && "⚠️ Something went wrong verifying your payment. If you were debited, contact support with your Paystack receipt."}
+            {paymentStatus === "notfound" && " Order not found for this payment reference."}
+            {paymentStatus === "error" && " Something went wrong verifying your payment. If you were debited, contact support with your Paystack receipt."}
             {paymentStatus === "amount_mismatch" && ""}
           </div>
         )}
@@ -136,7 +136,7 @@ export default function Orders() {
             {paymentInfo.mode === "manual" ? (
               <div className="space-y-2 text-sm">
                 <p>Send <strong>GH₵{paymentInfo.amount}</strong> via MoMo to:</p>
-                <p className="text-2xl font-bold text-[#1b5e20]">📞 {paymentInfo.adminMomo}</p>
+                <p className="text-2xl font-bold text-[#1b5e20]"> {paymentInfo.adminMomo}</p>
                 <p>Reference: <strong>{paymentInfo.reference}</strong></p>
                 <p className="text-gray-600">After sending, the admin will confirm receipt. Then you'll be notified to confirm delivery.</p>
               </div>

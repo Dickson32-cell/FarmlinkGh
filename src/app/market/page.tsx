@@ -126,7 +126,7 @@ export default function Market() {
           <form onSubmit={submitListing} className="bg-white rounded-xl shadow border border-gray-200 p-6 mb-6 grid md:grid-cols-2 gap-4">
             {submitError && (
               <div className="md:col-span-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2.5 text-sm">
-                ⚠️ {submitError}
+                 {submitError}
                 {submitError.includes("profile") && (
                   <span> — <a href="/profile" className="underline font-semibold">Complete your profile</a></span>
                 )}
@@ -182,7 +182,7 @@ export default function Market() {
                 {form.images.length < 5 && (
                   <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-[#43a047] block">
                     <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleImageUpload} className="hidden" />
-                    {uploading ? <span className="text-gray-500 text-sm">Uploading...</span> : <span className="text-gray-500 text-sm">📸 Click to upload photos ({form.images.length}/5)</span>}
+                    {uploading ? <span className="text-gray-500 text-sm">Uploading...</span> : <span className="text-gray-500 text-sm"> Click to upload photos ({form.images.length}/5)</span>}
                   </label>
                 )}
               </div>
@@ -217,12 +217,12 @@ export default function Market() {
                   <div className="font-bold text-lg">{l.crop}</div>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${l.status === "available" ? "bg-green-50 text-green-600" : l.status === "reserved" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`}>{l.status}</span>
                 </div>
-                <div className="text-sm text-gray-500 mb-2">{user?.role === "farmer" ? `📍 ${l.location}, ${l.region}` : `👨‍🌾 ${l.farmer?.name || "Unknown"} · ${l.location}, ${l.region}`}</div>
+                <div className="text-sm text-gray-500 mb-2">{user?.role === "farmer" ? `${l.location}, ${l.region}` : `${l.farmer?.name || "Unknown"} · ${l.location}, ${l.region}`}</div>
                 <div className="text-xl font-bold text-[#1b5e20] mb-2">GH₵{l.price.toLocaleString()} <span className="text-xs text-gray-400">/ bag</span></div>
                 <div className="flex gap-3 text-xs text-gray-500 flex-wrap mb-2">
-                  <span>📦 {l.quantity} bags</span><span>📅 {l.harvestDate}</span>
+                  <span>{l.quantity} bags</span><span> · {l.harvestDate}</span>
                 </div>
-                {l.notes && <div className="text-xs text-gray-400 mb-2">📝 {l.notes}</div>}
+                {l.notes && <div className="text-xs text-gray-400 mb-2"> {l.notes}</div>}
                 <Link href={`/market/${l.id}`} className="block text-center bg-[#1b5e20] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818] mt-2">View Details</Link>
                 {l.status === "available" && l.farmer && user?.role !== "farmer" && (
                   <div className="bg-green-50 rounded-lg p-3 mt-2">

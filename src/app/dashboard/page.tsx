@@ -189,7 +189,7 @@ export default function Dashboard() {
                 <h3 className="md:col-span-2 text-base font-bold text-[#1b5e20]">New Produce Listing</h3>
                 {addError && (
                   <div className="md:col-span-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2.5 text-sm">
-                    ⚠️ {addError}
+                     {addError}
                     {addError.includes("profile") && (
                       <span> — <Link href="/profile" className="underline font-semibold">Complete your profile</Link></span>
                     )}
@@ -243,7 +243,7 @@ export default function Dashboard() {
                     {addForm.images.length < 5 && (
                       <label className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-[#43a047] block">
                         <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleAddImageUpload} className="hidden" />
-                        {addUploading ? <span className="text-gray-500 text-sm">Uploading...</span> : <span className="text-gray-500 text-sm">📸 Click to upload photos ({addForm.images.length}/5)</span>}
+                        {addUploading ? <span className="text-gray-500 text-sm">Uploading...</span> : <span className="text-gray-500 text-sm"> Click to upload photos ({addForm.images.length}/5)</span>}
                       </label>
                     )}
                   </div>
@@ -348,7 +348,7 @@ export default function Dashboard() {
                               {(editForm.images || []).length < 5 && (
                                 <label className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-[#43a047] block">
                                   <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleEditImageUpload} className="hidden" />
-                                  {editUploading ? <span className="text-gray-500 text-sm">Uploading...</span> : <span className="text-gray-500 text-sm">📸 Click to upload photos ({(editForm.images || []).length}/5)</span>}
+                                  {editUploading ? <span className="text-gray-500 text-sm">Uploading...</span> : <span className="text-gray-500 text-sm"> Click to upload photos ({(editForm.images || []).length}/5)</span>}
                                 </label>
                               )}
                             </div>

@@ -92,12 +92,10 @@ function RegisterForm() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1b5e20] to-[#0d3818] p-4">
         <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md text-center">
-          <div className="text-5xl mb-4">🎉</div>
           <h1 className="text-2xl font-bold text-[#1b5e20] mb-2">Registration Submitted!</h1>
           <p className="text-gray-600 mb-4">Thank you, <strong>{name}</strong>. Your account has been created and is now under review.</p>
           <div className="bg-[#e8f5e9] border border-[#43a047] rounded-xl p-5 mb-6 text-left">
             <div className="flex items-start gap-3">
-              <span className="text-2xl">🕐</span>
               <div>
                 <div className="font-bold text-[#1b5e20] mb-1">Verification in Progress</div>
                 <p className="text-sm text-[#2e7d32]">
@@ -155,12 +153,12 @@ function RegisterForm() {
               type="button"
               onClick={() => { setIdType("ghana-card"); setError(""); }}
               className={`p-3 rounded-lg border-2 font-semibold text-sm ${idType === "ghana-card" ? "border-[#1b5e20] bg-[#e8f5e9] text-[#1b5e20]" : "border-gray-200 text-gray-500"}`}
-            >🪪 Ghana Card</button>
+            > Ghana Card</button>
             <button
               type="button"
               onClick={() => { setIdType("passport"); setError(""); }}
               className={`p-3 rounded-lg border-2 font-semibold text-sm ${idType === "passport" ? "border-[#e65100] bg-[#fff3e0] text-[#e65100]" : "border-gray-200 text-gray-500"}`}
-            >🌐 No Ghana Card? Use Passport</button>
+            > No Ghana Card? Use Passport</button>
           </div>
 
           {/* ID number */}
@@ -216,7 +214,6 @@ function RegisterForm() {
                     </div>
                   ) : (
                     <div className="text-gray-400">
-                      <div className="text-4xl mb-3">{idType === "ghana-card" ? "🪪" : "📄"}</div>
                       <div className="font-semibold text-gray-600 mb-1">
                         Click to upload {idType === "ghana-card" ? "Ghana Card" : "Passport photo page"}
                       </div>
@@ -235,7 +232,7 @@ function RegisterForm() {
           {/* Farmer policy agreement — must be ticked to submit */}
           {role === "farmer" && (
             <div className={`border-2 rounded-xl p-4 mb-5 ${policyAgreed ? "border-[#43a047] bg-[#f6fbf6]" : "border-gray-200 bg-gray-50"}`}>
-              <div className="text-xs font-bold uppercase text-gray-500 mb-2">📋 Farmer Agreement — please read</div>
+              <div className="text-xs font-bold uppercase text-gray-500 mb-2"> Farmer Agreement — please read</div>
               <ul className="text-xs text-gray-700 space-y-1.5 list-disc list-inside mb-3">
                 <li><strong>10% commission:</strong> FarmLink charges 10% on each completed sale (plus the payment processor fee). This is because the buyer receives the product and confirms it on the site — the escrow that protects both sides.</li>
                 <li><strong>Buyer confirmation:</strong> Your payment is released only after the buyer confirms on the site that they received the product. <strong>If the buyer delays confirmation, you (the farmer) can call or email the admin</strong> — 0595726252 / info.rametechconsultancy@gmail.com — and the admin will contact the buyer to confirm product received.</li>
@@ -291,8 +288,8 @@ function RegisterForm() {
         {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <button type="button" onClick={() => setRole("farmer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "farmer" ? "border-[#1b5e20] bg-[#e8f5e9] text-[#1b5e20]" : "border-gray-200 text-gray-500"}`}>👨‍🌾 Farmer</button>
-            <button type="button" onClick={() => setRole("buyer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "buyer" ? "border-[#e65100] bg-[#fff3e0] text-[#e65100]" : "border-gray-200 text-gray-500"}`}>🏪 Buyer</button>
+            <button type="button" onClick={() => setRole("farmer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "farmer" ? "border-[#1b5e20] bg-[#e8f5e9] text-[#1b5e20]" : "border-gray-200 text-gray-500"}`}>Farmer</button>
+            <button type="button" onClick={() => setRole("buyer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "buyer" ? "border-[#e65100] bg-[#fff3e0] text-[#e65100]" : "border-gray-200 text-gray-500"}`}>Buyer</button>
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Full Name</label>

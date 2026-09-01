@@ -57,7 +57,7 @@ export default function Prices() {
                     <td className="p-3">GH₵{p.lowPrice.toLocaleString()}</td>
                     <td className="p-3">GH₵{p.highPrice.toLocaleString()}</td>
                     <td className="p-3 font-bold">GH₵{avg.toLocaleString()}</td>
-                    <td className="p-3">{p.trend === "up" ? "📈 Rising" : p.trend === "down" ? "📉 Falling" : "➡️ Stable"}</td>
+                    <td className="p-3">{p.trend === "up" ? " Rising" : p.trend === "down" ? " Falling" : " Stable"}</td>
                   </tr>
                 );
               })}

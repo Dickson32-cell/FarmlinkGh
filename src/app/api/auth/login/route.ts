@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     if (user.role === "admin") {
       // ─── ADMIN PATH: email code to ADMIN_EMAIL ───
-      console.log(`⚠️ ADMIN LOGIN attempt: ${user.name} (${phone}) at ${new Date().toISOString()}`);
+      console.log(` ADMIN LOGIN attempt: ${user.name} (${phone}) at ${new Date().toISOString()}`);
 
       let ip = req.headers.get("x-forwarded-for") || "";
       if (ip.includes(",")) ip = ip.split(",")[0].trim();

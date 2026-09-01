@@ -119,7 +119,6 @@ export default function ForgotPassword() {
         {stage === "done" && (
           <>
             <div className="text-center mb-6">
-              <div className="text-4xl mb-3">✅</div>
               <p className="font-bold text-[#1b5e20] text-lg">Password changed!</p>
               <p className="text-sm text-gray-500 mt-1">You can now log in with your new password.</p>
             </div>
