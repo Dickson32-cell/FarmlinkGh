@@ -17,7 +17,6 @@ function RegisterForm() {
   const [farmSize, setFarmSize] = useState("");
   const [mainCrops, setMainCrops] = useState("");
   const [businessType, setBusinessType] = useState("Market Trader");
-  const [location, setLocation] = useState("");
   const [lookingFor, setLookingFor] = useState("");
   const [ghanaCardUrl, setGhanaCardUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -52,28 +51,20 @@ function RegisterForm() {
   const submit = async () => {
     setLoading(true);
     setError("");
+    const profile =
+      role === "farmer"
+        ? { region, town, farmSize: parseFloat(farmSize) || 0, mainCrops }
+        : { businessType, region, town, lookingFor };
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone, password, role, ghanaCardUrl }),
+      // Profile fields ride in the register payload — there is no session
+      // cookie yet (pending accounts), so a separate /api/profile PATCH
+      // would 401 and lose them.
+      body: JSON.stringify({ name, phone, password, role, ghanaCardUrl, profile }),
     });
     const data = await res.json();
     if (res.ok) {
-      // Update profile info in the background
-      if (role === "farmer") {
-        await fetch("/api/profile", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ region, town, farmSize: parseFloat(farmSize) || 0, mainCrops }),
-        }).catch(() => { });
-      } else {
-        await fetch("/api/profile", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          // location = town; buyer.region is new — same dropdown pattern as farmers
-          body: JSON.stringify({ businessType, region, location: town, lookingFor }),
-        }).catch(() => { });
-      }
       setStep(3); // Show pending confirmation
     } else {
       setError(data.error || "Registration failed");

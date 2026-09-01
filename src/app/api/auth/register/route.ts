@@ -5,7 +5,7 @@ import { detectNetwork } from "@/lib/otp";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, phone, password, role, ghanaCardUrl } = await req.json();
+    const { name, phone, password, role, ghanaCardUrl, profile } = await req.json();
     if (!name || !phone || !password || !role) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
     }
@@ -28,13 +28,30 @@ export async function POST(req: NextRequest) {
         lastNetwork: detectNetwork(phone),
       },
     });
+
+    // Persist the profile fields AT REGISTRATION. The old flow PATCHed
+    // /api/profile after this response — but the user has no session yet
+    // (pending accounts get no cookie), so that request 401'd silently and
+    // the region/town/business details were lost. They travel in the
+    // register payload instead.
+    const p = profile || {};
     if (role === "farmer") {
       await prisma.farmer.create({
-        data: { userId: user.id, name, phone, region: "", town: "", farmSize: 0, mainCrops: "" },
+        data: {
+          userId: user.id, name, phone,
+          region: p.region || "", town: p.town || "",
+          farmSize: p.farmSize || 0, mainCrops: p.mainCrops || "",
+        },
       });
     } else if (role === "buyer") {
       await prisma.buyer.create({
-        data: { userId: user.id, name, phone, businessType: "", location: "", lookingFor: "" },
+        data: {
+          userId: user.id, name, phone,
+          businessType: p.businessType || "",
+          region: p.region || "",
+          location: p.town || p.location || "",
+          lookingFor: p.lookingFor || "",
+        },
       });
     }
     // No session cookie — user must be approved by admin before login
