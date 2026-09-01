@@ -140,9 +140,11 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (session.role === "buyer") {
-      // Buyer can only: confirm delivery (pending→delivered, paid→delivered)
+      // Buyer can only confirm delivery on THEIR OWN order (pending→delivered, paid→delivered)
       if (status !== "delivered")
         return NextResponse.json({ error: "Buyers can only confirm delivery" }, { status: 403 });
+      if (order.buyerId !== session.userId)
+        return NextResponse.json({ error: "You can only confirm delivery on your own orders" }, { status: 403 });
       if (order.status !== "pending" && order.status !== "paid")
         return NextResponse.json({ error: "Cannot confirm delivery at this stage" }, { status: 400 });
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { getSession, getAdminSession } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -73,8 +73,36 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const { id, status } = await req.json();
-    const listing = await prisma.listing.update({ where: { id }, data: { status } });
-    return NextResponse.json(listing);
+
+    const listing = await prisma.listing.findUnique({ where: { id } });
+    if (!listing) return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+
+    // Ownership rules:
+    //  - Admin (verified session) may set any status
+    //  - The owning farmer may set their own listing's status (available/reserved/sold)
+    //  - Any other logged-in user may ONLY reserve an available listing
+    const adminSession = await getAdminSession(req);
+    if (adminSession) {
+      const valid = ["available", "reserved", "sold"];
+      if (!valid.includes(status))
+        return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    } else if (session.role === "farmer") {
+      const farmer = await prisma.farmer.findUnique({ where: { userId: session.userId } });
+      if (!farmer || listing.farmerId !== farmer.id)
+        return NextResponse.json({ error: "You can only update your own listings" }, { status: 403 });
+      const valid = ["available", "reserved", "sold"];
+      if (!valid.includes(status))
+        return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    } else {
+      // buyer / other users: reserve only, and only if still available
+      if (status !== "reserved")
+        return NextResponse.json({ error: "You can only reserve listings" }, { status: 403 });
+      if (listing.status !== "available")
+        return NextResponse.json({ error: "This listing is no longer available" }, { status: 400 });
+    }
+
+    const updated = await prisma.listing.update({ where: { id }, data: { status } });
+    return NextResponse.json(updated);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
@@ -120,6 +148,18 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+
+  // Ownership: the owning farmer or a verified admin may delete.
+  const adminSession = await getAdminSession(req);
+  if (!adminSession) {
+    if (session.role !== "farmer")
+      return NextResponse.json({ error: "Only the owner can delete this listing" }, { status: 403 });
+    const farmer = await prisma.farmer.findUnique({ where: { userId: session.userId } });
+    const listing = await prisma.listing.findUnique({ where: { id } });
+    if (!farmer || !listing || listing.farmerId !== farmer.id)
+      return NextResponse.json({ error: "You can only delete your own listings" }, { status: 403 });
+  }
+
   await prisma.listing.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

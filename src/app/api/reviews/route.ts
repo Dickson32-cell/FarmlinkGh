@@ -25,6 +25,22 @@ export async function POST(req: NextRequest) {
     if (!farmerId || !rating || rating < 1 || rating > 5)
       return NextResponse.json({ error: "farmerId and rating (1-5) required" }, { status: 400 });
 
+    // Review integrity: only buyers who COMPLETED an order with this farmer
+    // may review them. This stops fake/retaliation reviews from arbitrary users.
+    const completed = await prisma.order.findFirst({
+      where: {
+        buyerId: session.userId,
+        farmerId,
+        status: { in: ["delivered", "released"] },
+      },
+    });
+    if (!completed) {
+      return NextResponse.json(
+        { error: "You can only review farmers you have completed an order with" },
+        { status: 403 }
+      );
+    }
+
     const buyer = await prisma.buyer.findUnique({ where: { userId: session.userId } });
     const review = await prisma.review.create({
       data: {
