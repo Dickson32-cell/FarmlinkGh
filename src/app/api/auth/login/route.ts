@@ -3,9 +3,12 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth";
 import { createOtp, sendSms, detectNetwork } from "@/lib/otp";
+import { createAdminOtp, sendAdminCodeEmail, ADMIN_EMAIL } from "@/lib/adminOtp";
 
-// POST: Step 1 of 2FA login — verify phone+password, then send OTP via SMS.
-// A session is NOT issued here. Client must complete /api/auth/verify-otp.
+// POST: Step 1 of 2FA login — verify phone+password, then send an OTP.
+// A session is NOT issued here. Client must complete:
+//   farmer/buyer → /api/auth/verify-otp        (SMS code)
+//   admin        → /api/auth/admin/verify-code (EMAIL code to ADMIN_EMAIL)
 export async function POST(req: NextRequest) {
   try {
     const { phone, password } = await req.json();
@@ -58,26 +61,50 @@ export async function POST(req: NextRequest) {
       });
     }
     if (user.status === "pending") {
-      return NextResponse.json({
-        error: "Your account is pending verification. This takes 2–3 working days. You will be able to log in once approved.",
-        status: "pending",
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: "Your account is pending verification. This takes 2–3 working days. You will be able to log in once approved.",
+          status: "pending",
+        },
+        { status: 403 }
+      );
     }
     if (user.status === "rejected") {
-      return NextResponse.json({
-        error: "Your account was not approved. Please contact support or re-register with a valid Ghana Card.",
-        status: "rejected",
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: "Your account was not approved. Please contact support or re-register with a valid Ghana Card.",
+          status: "rejected",
+        },
+        { status: 403 }
+      );
     }
 
+    if (user.role === "admin") {
+      // ─── ADMIN PATH: email code to ADMIN_EMAIL ───
+      console.log(`⚠️ ADMIN LOGIN attempt: ${user.name} (${phone}) at ${new Date().toISOString()}`);
+
+      let ip = req.headers.get("x-forwarded-for") || "";
+      if (ip.includes(",")) ip = ip.split(",")[0].trim();
+
+      const { code } = await createAdminOtp("admin_login", ip);
+      const { sent, provider } = await sendAdminCodeEmail(code, "Admin login");
+
+      const masked = ADMIN_EMAIL.replace(/^(.{3}).*(@.*)$/, "$1•••••$2");
+      return NextResponse.json({
+        otpRequired: true,
+        adminLogin: true,
+        email: masked,
+        emailSent: sent,
+        provider,
+        message: `Verification code sent to ${masked}. FarmLink admin access requires email verification.`,
+      });
+    }
+
+    // ─── FARMER / BUYER PATH: SMS code ───
     // Record the network this user's phone belongs to (visible on the OTP screen)
     const network = detectNetwork(phone);
     if (user.lastNetwork !== network) {
       await prisma.user.update({ where: { id: user.id }, data: { lastNetwork: network } });
-    }
-
-    if (user.role === "admin") {
-      console.log(`⚠️ ADMIN LOGIN attempt: ${user.name} (${phone}) at ${new Date().toISOString()}`);
     }
 
     if (!user.twoFactorEnabled) {

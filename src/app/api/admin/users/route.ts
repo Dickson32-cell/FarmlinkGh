@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { getAdminSession } from "@/lib/session";
 
+// Admin user-verification endpoints — gated to verified admin sessions
+// (the adminVerified cookie minted after the email-code check).
 export async function GET(req: NextRequest) {
-    const session = await getSession(req);
-    if (!session || session.role !== "admin") {
+    const session = await getAdminSession(req);
+    if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const users = await prisma.user.findMany({
@@ -19,8 +21,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-    const session = await getSession(req);
-    if (!session || session.role !== "admin") {
+    const session = await getAdminSession(req);
+    if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const { userId, action } = await req.json();
@@ -31,5 +33,16 @@ export async function PATCH(req: NextRequest) {
         where: { id: userId },
         data: { status: action === "approve" ? "approved" : "rejected" },
     });
+
+    await prisma.auditLog.create({
+        data: {
+            actorId: session.userId,
+            actorName: "admin",
+            action: `user.${action}`,
+            targetId: userId,
+            details: `${user.name} (${user.phone}) → ${action === "approve" ? "approved" : "rejected"}`,
+        },
+    });
+
     return NextResponse.json({ id: user.id, status: user.status });
 }

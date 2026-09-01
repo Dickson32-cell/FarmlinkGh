@@ -32,7 +32,9 @@ export default function Admin() {
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
       if (!d.user) { router.push("/login"); return; }
-      if (d.user.role !== "admin") { router.push("/dashboard"); return; }
+      // Admin surfaces require the email-code-verified session (12h cookie).
+      // role=admin without adminVerified means the email code step is missing.
+      if (d.user.role !== "admin" || d.user.adminVerified !== true) { router.push("/login"); return; }
       setUser(d.user);
       loadAll();
     });
@@ -350,16 +352,16 @@ export default function Admin() {
           <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm">
             <h2 className="text-xl font-bold text-[#1b5e20] text-center mb-1">Confirm Admin Action</h2>
             <p className="text-sm text-gray-500 text-center mb-5">
-              Enter the code sent to your phone to {otpModal.label}.
+              Enter the code sent to the admin email to {otpModal.label}.
             </p>
             {otpError && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 text-center">{otpError}</div>}
             <input
-              type="text" inputMode="numeric" maxLength={6}
+              type="text" inputMode="numeric" maxLength={8}
               value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ""))}
-              placeholder="••••••" autoFocus
-              className="w-full p-4 border-2 border-gray-200 rounded-lg text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-[#43a047] mb-4"
+              placeholder="••••••••" autoFocus
+              className="w-full p-4 border-2 border-gray-200 rounded-lg text-center text-3xl tracking-[0.4em] font-bold outline-none focus:border-[#43a047] mb-4"
             />
-            <button onClick={submitReleaseOtp} disabled={otpLoading || otpCode.length < 6}
+            <button onClick={submitReleaseOtp} disabled={otpLoading || otpCode.length < 8}
               className="w-full bg-[#1b5e20] text-white py-3 rounded-lg font-bold hover:bg-[#0d3818] disabled:opacity-60 mb-2">
               {otpLoading ? "Confirming..." : "Confirm"}
             </button>

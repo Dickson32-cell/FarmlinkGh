@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { getSession, getAdminSession, getAdminActionToken } from "@/lib/session";
 
 const COMMISSION_RATE = parseFloat(process.env.COMMISSION_RATE || "0.10");
 const HUBTEL_FEE_RATE = parseFloat(process.env.HUBTEL_FEE_RATE || "0.015");
@@ -89,33 +89,19 @@ export async function PATCH(req: NextRequest) {
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
     // Role-based status transitions
-    if (session.role === "admin") {
+    const adminSession = await getAdminSession(req);
+    if (adminSession) {
       const validStatuses = ["pending", "paid", "delivered", "released", "cancelled"];
       if (!validStatuses.includes(status))
         return NextResponse.json({ error: "Invalid status" }, { status: 400 });
 
       // Step-up auth: releasing money requires a fresh admin-action token
-      let actionTokenPayload: any = null;
+      // (minted only after an EMAIL code to ADMIN_EMAIL — see /api/auth/admin-otp)
       if (status === "released") {
-        const actionToken = req.headers.get("x-admin-action-token") || "";
-        if (!actionToken) {
+        const actionPayload = await getAdminActionToken(req);
+        if (!actionPayload) {
           return NextResponse.json(
-            { error: "Confirm with admin OTP first", requireOtp: true },
-            { status: 401 }
-          );
-        }
-        try {
-          const { jwtVerify } = await import("jose");
-          const secret = new TextEncoder().encode(
-            process.env.JWT_SECRET || "farmlink-dev-secret-2026"
-          );
-          const { payload } = await (await import("jose")).jwtVerify(actionToken, secret);
-          if (payload.purpose !== "admin_action" || payload.role !== "admin") {
-            return NextResponse.json({ error: "Invalid action token" }, { status: 401 });
-          }
-        } catch {
-          return NextResponse.json(
-            { error: "Admin confirmation expired. Request a new code.", requireOtp: true },
+            { error: "Confirm with the admin email code first", requireOtp: true },
             { status: 401 }
           );
         }
@@ -129,7 +115,7 @@ export async function PATCH(req: NextRequest) {
       // Audit trail — who changed what
       await prisma.auditLog.create({
         data: {
-          actorId: session.userId,
+          actorId: adminSession.userId,
           actorName: "admin",
           action: `order.${status}`,
           targetId: id,
@@ -137,12 +123,17 @@ export async function PATCH(req: NextRequest) {
         },
       });
 
-      // If released, mark the listing as sold
+      // If released, mark the listing as sold (non-fatal — legacy orders may
+      // reference listings that no longer exist; the money event is the order)
       if (status === "released") {
-        await prisma.listing.update({
-          where: { id: order.listingId },
-          data: { status: "sold" },
-        });
+        try {
+          await prisma.listing.update({
+            where: { id: order.listingId },
+            data: { status: "sold" },
+          });
+        } catch (e) {
+          console.error(`listing mark-sold skipped for order ${id}:`, String(e).slice(0, 120));
+        }
       }
 
       return NextResponse.json(updated);

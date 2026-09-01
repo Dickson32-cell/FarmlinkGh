@@ -7,11 +7,13 @@ async function main() {
   console.log("Seeding FarmLink Ghana...");
 
   // Create admin user
+  // Login: phone + password → then an EMAIL code to ADMIN_EMAIL
+  // (dicksonapam@gmail.com) must be entered before the admin session is minted.
   const adminPass = await bcrypt.hash("admin123", 10);
   const admin = await prisma.user.upsert({
     where: { phone: "0244000000" },
     update: {},
-    create: { name: "Admin", phone: "0244000000", password: adminPass, role: "admin", status: "approved" },
+    create: { name: "FarmLink Admin", phone: "0244000000", password: adminPass, role: "admin", status: "approved" },
   });
 
   // Create farmer users

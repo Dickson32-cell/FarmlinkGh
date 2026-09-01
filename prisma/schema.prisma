@@ -3,26 +3,26 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url = "file:./dev.db.bak1"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String
-  phone         String   @unique
+  phone         String    @unique
   password      String
-  role          String   @default("farmer") // farmer, buyer, admin
-  status        String   @default("pending") // pending, approved, rejected
-  ghanaCardUrl  String   @default("")
+  role          String    @default("farmer") // farmer, buyer, admin
+  status        String    @default("pending") // pending, approved, rejected
+  ghanaCardUrl  String    @default("")
   twoFactorEnabled Boolean @default(true) // OTP on every login (opt-out possible)
-  lastNetwork      String  @default("")    // MTN / Telecel / AT detected at registration
-  failedLogins     Int     @default(0)     // consecutive failed password attempts
-  lockedUntil      DateTime?               // brute-force lockout expiry
+  lastNetwork      String   @default("")   // MTN / Telecel / AT detected at registration
+  failedLogins     Int      @default(0)    // consecutive failed password attempts
+  lockedUntil      DateTime?              // brute-force lockout expiry
   farmer        Farmer?
   buyer         Buyer?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Farmer {
@@ -42,16 +42,16 @@ model Farmer {
 }
 
 model Buyer {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  name      String
-  phone     String
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  name         String
+  phone        String
   businessType String
-  location  String
-  lookingFor String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  location     String
+  lookingFor   String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Listing {
@@ -67,11 +67,13 @@ model Listing {
   farmer      Farmer   @relation(fields: [farmerId], references: [id])
   harvestDate String
   notes       String?
-  images      String   @default("[]") // JSON array of up to 5 image URLs
+  images      String   @default("[]") // JSON array of up to 5 image URLs (public /api/files/<id> URLs)
   status      String   @default("available") // available, reserved, sold
   postedDate  String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([status])
 }
 
 model Price {
@@ -99,52 +101,92 @@ model Review {
 }
 
 model Order {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   listingId       String
   crop            String
   quantity        Int
   unitPrice       Float
-  totalAmount     Float    // quantity * unitPrice
+  totalAmount     Float     // quantity * unitPrice
   commissionRate   Float    @default(0.10) // 10% admin commission
   hubtelFeeRate   Float    @default(0.015) // 1.5% Hubtel fee
-  commissionAmount Float   // 10% of total
-  hubtelFeeAmount Float    // 1.5% of total
-  farmerPayout    Float    // totalAmount - commission - hubtelFee (88.5%)
+  commissionAmount Float
+  hubtelFeeAmount Float     // 1.5% of total
+  farmerPayout    Float     // totalAmount - commission - hubtelFee (88.5%)
   farmerId        String
   farmerName      String
   farmerPhone     String
   buyerId         String
   buyerName       String
   buyerPhone      String
-  status          String   @default("pending") // pending → paid → delivered → released → cancelled
-  paystackRef     String?  // Paystack transaction reference
-  paymentProvider String   @default("paystack") // paystack, hubtel, manual
-  hubtelTxId      String?  // legacy Hubtel transaction ID
-  paymentMethod   String?  // momo, card
+  status          String    @default("pending") // pending → paid → delivered → released → cancelled
+  paystackRef     String?   // Paystack transaction reference
+  paymentProvider String    @default("paystack") // paystack, hubtel, manual
+  hubtelTxId      String?   // legacy Hubtel transaction ID
+  paymentMethod   String?   // momo, card
   adminNote       String?
-  deliveredAt     DateTime?  // when buyer confirmed receipt
-  autoReleased    Boolean    @default(false) // set when 48h auto-release cron fires
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  deliveredAt     DateTime? // when buyer confirmed receipt
+  autoReleased    Boolean   @default(false) // set when 48h auto-release cron fires
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([farmerId])
+  @@index([buyerId])
 }
+
 model OtpCode {
   id        String   @id @default(cuid())
   phone     String
   codeHash  String   // bcrypt hash of the 6-digit code
-  purpose   String   @default("login") // login, withdrawal
+  purpose   String   @default("login") // login, reset, admin_login, admin_action, admin_session
   expiresAt DateTime
   used      Boolean  @default(false)
   attempts  Int      @default(0)
   createdAt DateTime @default(now())
 
   @@index([phone, createdAt])
+  @@index([purpose, createdAt])
+}
+
+// Uploaded files (Ghana Cards, listing photos).
+// Stored as BYTEA in Postgres so uploads survive Vercel's read-only filesystem.
+// kind = "ghana-card" (private — only the admin + owner can view)
+//        | "listing" (public — shown on the market page)
+model StoredFile {
+  id          String   @id @default(cuid())
+  filename    String
+  mimeType    String
+  size        Int
+  kind        String   @default("listing") // ghana-card | listing
+  ownerId     String?  // uploader's userId (null for orphaned/legacy files)
+  data        Bytes
+  createdAt   DateTime @default(now())
+
+  @@index([kind])
+}
+
+// Admin email-verification codes — sent to ADMIN_EMAIL (dicksonapam@gmail.com).
+// Separate from OtpCode so admin codes never collide with SMS codes, and so
+// admin login attempts can be locked out independently of phone OTP.
+model AdminOtp {
+  id         String    @id @default(cuid())
+  email      String
+  codeHash   String    // bcrypt hash of the 8-digit code
+  purpose    String    @default("admin_login") // admin_login | admin_action
+  expiresAt  DateTime
+  used       Boolean   @default(false)
+  attempts   Int       @default(0)
+  ip         String    @default("")
+  createdAt  DateTime  @default(now())
+
+  @@index([email, createdAt])
 }
 
 model AuditLog {
   id        String   @id @default(cuid())
   actorId   String   // admin userId
   actorName String
-  action    String   // e.g. order.released, user.approved
+  action    String   // e.g. order.released, user.approved, admin.login
   targetId  String?  // order/user id
   details   String?  // JSON or note
   createdAt DateTime @default(now())

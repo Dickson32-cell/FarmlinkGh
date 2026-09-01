@@ -37,6 +37,7 @@ function RegisterForm() {
     setError("");
     const fd = new FormData();
     fd.append("file", file);
+    fd.append("kind", "ghana-card"); // private — visible only to owner + verified admin
     const res = await fetch("/api/upload", { method: "POST", body: fd });
     const data = await res.json();
     if (data.url) {

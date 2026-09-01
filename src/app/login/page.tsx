@@ -10,9 +10,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   // 2FA state
-  const [stage, setStage] = useState<"credentials" | "otp">("credentials");
+  const [stage, setStage] = useState<"credentials" | "otp" | "admin-email">("credentials");
   const [otp, setOtp] = useState("");
   const [maskedPhone, setMaskedPhone] = useState("");
+  const [maskedEmail, setMaskedEmail] = useState("");
   const [network, setNetwork] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
@@ -30,8 +31,12 @@ export default function Login() {
     const data = await res.json();
     setLoading(false);
     if (res.ok) {
-      if (data.otpRequired) {
-        // 2FA path — show the OTP screen
+      if (data.otpRequired && data.adminLogin) {
+        // Admin path — email code to the admin email address
+        setMaskedEmail(data.email || "di•••••@gmail.com");
+        setStage("admin-email");
+      } else if (data.otpRequired) {
+        // 2FA path — show the SMS OTP screen
         setMaskedPhone(data.phone || phone.replace(/\d(?=\d{3})/g, "*"));
         setNetwork(data.network || "");
         setDevCode(data.devCode || null);
@@ -58,6 +63,25 @@ export default function Login() {
     setLoading(false);
     if (res.ok) {
       router.push("/dashboard");
+    } else {
+      setError(data.error || "Verification failed");
+      setOtp("");
+    }
+  };
+
+  const verifyAdminCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    const res = await fetch("/api/auth/admin/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phone.trim(), password, code: otp.trim() }),
+    });
+    const data = await res.json();
+    setLoading(false);
+    if (res.ok) {
+      router.push("/admin");
     } else {
       setError(data.error || "Verification failed");
       setOtp("");
@@ -100,6 +124,9 @@ export default function Login() {
                 <label className="text-xs font-semibold uppercase text-gray-500">Password</label>
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" required />
               </div>
+              <div className="text-right">
+                <Link href="/forgot-password" className="text-xs text-[#1b5e20] font-semibold hover:underline">Forgot password?</Link>
+              </div>
               <button type="submit" disabled={loading} className="w-full bg-[#1b5e20] text-white py-3 rounded-lg font-bold hover:bg-[#0d3818] disabled:opacity-60">
                 {loading ? "Checking..." : "Login"}
               </button>
@@ -139,6 +166,42 @@ export default function Login() {
                 {resending ? "Sending..." : "Resend code"}
               </button>
             </div>
+          </>
+        )}
+
+        {stage === "admin-email" && (
+          <>
+            <div className="bg-[#e8f5e9] border border-[#43a047] rounded-lg p-4 mb-5 text-center">
+              <div className="text-3xl mb-2">🔐</div>
+              <p className="text-sm font-bold text-[#1b5e20] mb-1">Admin Verification Required</p>
+              <p className="text-xs text-[#2e7d32]">
+                A verification code has been sent to
+              </p>
+              <p className="text-sm font-bold text-[#1b5e20] mt-1">{maskedEmail}</p>
+              <p className="text-xs text-gray-400 mt-2">Code valid for 10 minutes · 8 digits</p>
+            </div>
+            {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
+            <form onSubmit={verifyAdminCode} className="space-y-4">
+              <input
+                type="text" inputMode="numeric" pattern="[0-9]*" maxLength={8} autoComplete="one-time-code" autoFocus
+                value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                placeholder="••••••••"
+                className="w-full p-4 border-2 border-gray-200 rounded-lg text-center text-3xl tracking-[0.4em] font-bold outline-none focus:border-[#43a047]"
+                required
+              />
+              <button type="submit" disabled={loading || otp.length < 8} className="w-full bg-[#1b5e20] text-white py-3 rounded-lg font-bold hover:bg-[#0d3818] disabled:opacity-60">
+                {loading ? "Verifying..." : "Verify & Enter Admin"}
+              </button>
+            </form>
+            <div className="flex justify-between mt-5 text-sm">
+              <button onClick={() => { setStage("credentials"); setError(""); setOtp(""); }} className="text-gray-500 hover:text-gray-700">← Back to login</button>
+              <button onClick={resend} disabled={resending} className="text-[#1b5e20] font-semibold hover:underline disabled:opacity-50">
+                {resending ? "Sending..." : "Resend code"}
+              </button>
+            </div>
+            <p className="text-xs text-center text-gray-400 mt-4">
+              Admin sessions expire after 12 hours for security.
+            </p>
           </>
         )}
       </div>
