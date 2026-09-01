@@ -28,10 +28,8 @@ FarmLink Ghana is a marketplace connecting farmers directly with bulk buyers (re
 5. All admin API endpoints reject any session without the `adminVerified` claim
 
 Where codes appear:
-- **Vercel dashboard → framlinkgh → Deployments → latest → Functions/Logs** (search `ADMIN-EMAIL`) — until real email delivery is turned on
-- **Real email delivery** (recommended): add ONE of these as a Vercel env var — zero code changes:
-  - `RESEND_API_KEY` (free tier at resend.com) — easiest
-  - `SMTP_USER` + `SMTP_PASSWORD` (Gmail App Password) — Gmail: Account → Security → 2FA → App passwords
+- **info.rametechconsultancy@gmail.com inbox** (Resend) — live now. (Resend test mode delivers only to the account's signup email; to deliver to dicksonapam@gmail.com instead, verify a sending domain at resend.com/domains and update ADMIN_EMAIL.)
+- **Vercel → Deployments → Functions → Logs** — search `ADMIN-EMAIL` (every code is logged as a fallback if email delivery fails, so you can never be locked out)
 
 ## Ghana Card uploads (fixed)
 

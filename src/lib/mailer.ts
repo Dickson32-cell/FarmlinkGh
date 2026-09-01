@@ -36,6 +36,10 @@ export async function sendEmail(
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         console.error("Resend send failed:", res.status, data);
+        // CRITICAL FALLBACK: never lose an admin code — if the email could not
+        // be delivered, log it so it is always recoverable from the function
+        // logs (Vercel → Deployments → Functions → Logs).
+        console.log(`[ADMIN-EMAIL-FALLBACK] delivery failed; code recoverable below :: to=${to} :: ${subject} :: ${text}`);
         return { sent: false, provider: "resend" };
       }
       return { sent: true, provider: "resend" };

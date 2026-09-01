@@ -96,7 +96,9 @@ export async function POST(req: NextRequest) {
         email: masked,
         emailSent: sent,
         provider,
-        message: `Verification code sent to ${masked}. FarmLink admin access requires email verification.`,
+        message: sent
+          ? `Verification code sent to ${masked}. FarmLink admin access requires email verification.`
+          : `Email delivery to ${masked} failed (${provider}). The code is saved in the server function logs — Vercel → Deployments → Functions → Logs, search ADMIN-EMAIL-FALLBACK.`,
       });
     }
 

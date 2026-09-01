@@ -3,12 +3,19 @@ import { prisma } from "@/lib/prisma";
 
 // GET/POST: 48-hour auto-release job.
 // Orders in "delivered" state for 48+ hours with no dispute are auto-released:
-// status → "released", listing → sold, admin notified in the response (cron runner can alert).
+// status → "released", listing → sold.
 //
-// Security: requires header x-cron-secret matching CRON_SECRET in .env
-// (so only the scheduler — cron-job.org / GitHub Actions / Render Cron — can fire it).
+// Two ways to fire it — BOTH must present the CRON_SECRET:
+//   1. Vercel Cron (see vercel.json, daily). When CRON_SECRET is set on the
+//      project, Vercel automatically sends Authorization: Bearer ${CRON_SECRET}.
+//   2. Any external scheduler (cron-job.org, GitHub Actions) hitting this route
+//      with header x-cron-secret: ${CRON_SECRET}.
 //
-// Schedule: run every hour. With 48h grace, hourly runs are more than enough.
+// NOTE: x-vercel-cron headers are spoofable by external callers and are NOT
+// used as a trust boundary here — only the shared secret authorizes a run.
+//
+// The job itself is idempotent and only releases orders already 48h past
+// delivery, so triggering it (even repeatedly) can never release money early.
 
 const GRACE_HOURS = 48;
 
@@ -30,7 +37,7 @@ async function runJob() {
       where: { id: order.id },
       data: { status: "released", autoReleased: true },
     });
-    // Mark listing sold
+    // Mark listing sold (non-fatal — legacy orders may reference removed listings)
     try {
       await prisma.listing.update({
         where: { id: order.listingId },
@@ -39,6 +46,7 @@ async function runJob() {
     } catch (e) {
       console.error(`listing update failed for ${order.listingId}:`, e);
     }
+    console.log(`[AUTO-RELEASE] order ${order.id} → released. Farmer payout GH₵${order.farmerPayout} to ${order.farmerName} (${order.farmerPhone})`);
     released.push({
       orderId: order.id,
       farmerName: order.farmerName,
@@ -64,8 +72,13 @@ export async function GET(req: NextRequest) {
   if (!secret) {
     return NextResponse.json({ error: "CRON_SECRET not configured" }, { status: 503 });
   }
+  // Vercel Cron sends Authorization: Bearer ${CRON_SECRET} automatically;
+  // external schedulers send x-cron-secret. Either proves knowledge of the secret.
+  const bearer = req.headers.get("authorization");
   const provided = req.headers.get("x-cron-secret");
-  if (provided !== secret) {
+  const authorized =
+    (bearer && bearer === `Bearer ${secret}`) || (provided && provided === secret);
+  if (!authorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const result = await runJob();
