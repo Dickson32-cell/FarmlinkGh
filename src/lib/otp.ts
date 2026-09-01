@@ -84,17 +84,24 @@ export async function sendSms(phone: string, message: string): Promise<{ sent: b
     if (provider === "arkesel") {
       const apiKey = process.env.ARKESEL_API_KEY;
       const sender = process.env.ARKESEL_SENDER_ID || "FarmLink";
-      const body = new URLSearchParams({
-        action: "send-message",
-        api_key: apiKey || "",
-        to,
-        from: sender,
-        sms: message,
+      const res = await fetch("https://sms.arkesel.com/api/v2/sms/send", {
+        method: "POST",
+        headers: {
+          "api-key": apiKey || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sender,
+          message,
+          recipients: [`+${to}`],
+        }),
       });
-      const res = await fetch(`https://sms.arkesel.com/api/v2/sms/send?${body.toString()}`, {
-        method: "GET",
-      });
-      return { sent: res.ok, provider };
+      const data = await res.json().catch(() => null);
+      const ok = res.ok && (data as any)?.status === "success";
+      if (!ok) {
+        console.error("Arkesel send failed:", res.status, data);
+      }
+      return { sent: !!ok, provider };
     }
 
     if (provider === "hubtel") {
