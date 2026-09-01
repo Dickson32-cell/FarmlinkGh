@@ -164,6 +164,14 @@ model Product {
   createdAt DateTime @default(now())
 }
 
+// Admin-managed site content (hero image etc). Key-value store; the value
+// holds a /api/files/<id> URL for images.
+model SiteSetting {
+  key       String   @id
+  value     String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
 // Uploaded files (Ghana Cards, listing photos).
 // Stored as BYTEA in Postgres so uploads survive Vercel's read-only filesystem.
 // kind = "ghana-card" (private — only the admin + owner can view)

@@ -5,7 +5,7 @@ import { getSession, getAdminSession } from "@/lib/session";
 // GET /api/files/<id> — serve a stored file from the database.
 //
 // Access rules:
-//   kind = "listing"    → public (market page images)
+//   kind = "listing" | "hero" → public (market images, homepage cover)
 //   kind = "ghana-card" | "passport" → PRIVATE. Only:
 //                            1. a verified admin session (adminVerified cookie), or
 //                            2. the owner (same user session cookie)

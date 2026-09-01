@@ -19,15 +19,19 @@ interface Order {
 export default function Admin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [allUsers, setAllUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, delivered: 0, released: 0, revenue: 0 });
-  const [activeTab, setActiveTab] = useState<"verifications" | "orders">("verifications");
+  const [activeTab, setActiveTab] = useState<"verifications" | "orders" | "users">("verifications");
   const [cardModal, setCardModal] = useState<string | null>(null);
   const [otpModal, setOtpModal] = useState<{ orderId: string; label: string; status?: string } | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
+  const [heroImage, setHeroImage] = useState("");
+  const [heroUploading, setHeroUploading] = useState(false);
+  const [heroError, setHeroError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -45,9 +49,13 @@ export default function Admin() {
     Promise.all([
       fetch("/api/orders").then((r) => r.json()),
       fetch("/api/admin/users").then((r) => r.json()),
-    ]).then(([ordersData, usersData]) => {
+      fetch("/api/admin/users?status=all").then((r) => r.json()),
+      fetch("/api/settings?key=heroImage").then((r) => r.json()).catch(() => ({})),
+    ]).then(([ordersData, usersData, allUsersData, heroData]) => {
       setOrders(ordersData);
       setPendingUsers(Array.isArray(usersData) ? usersData : []);
+      setAllUsers(Array.isArray(allUsersData) ? allUsersData : []);
+      setHeroImage((heroData as any).value || "");
       const s = {
         total: ordersData.length,
         pending: ordersData.filter((o: Order) => o.status === "pending").length,
@@ -147,6 +155,55 @@ export default function Admin() {
     loadAll();
   };
 
+  const handleDeleteUser = async (userId: string, name: string) => {
+    if (!confirm(`Delete ${name} permanently?\n\nThis removes their account, listings, ID documents and reviews. Orders they took part in keep the records for money accounting. This cannot be undone.`)) return;
+    const res = await fetch("/api/admin/users", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Delete failed");
+      return;
+    }
+    loadAll();
+  };
+
+  const uploadHero = async (file: File) => {
+    setHeroUploading(true);
+    setHeroError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", "hero");
+      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      const upData = await up.json();
+      if (!up.ok) throw new Error(upData.error || "Upload failed");
+      const save = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "heroImage", value: upData.url }),
+      });
+      if (!save.ok) throw new Error("Could not save setting");
+      setHeroImage(upData.url);
+    } catch (e: any) {
+      setHeroError(e.message || "Upload failed");
+    } finally {
+      setHeroUploading(false);
+    }
+  };
+
+  const removeHero = async () => {
+    if (!confirm("Remove the homepage hero image? The green gradient returns.")) return;
+    await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "heroImage", value: "" }),
+    });
+    setHeroImage("");
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>;
   if (!user) return null;
 
@@ -229,6 +286,41 @@ export default function Admin() {
           >
             📦 Orders ({stats.total})
           </button>
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`px-5 py-2.5 rounded-lg font-semibold text-sm ${activeTab === "users" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+          >
+            👥 Users ({allUsers.length})
+          </button>
+        </div>
+
+        {/* Homepage Hero Image Manager */}
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-5 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-bold text-[#1b5e20]">🖼️ Homepage Hero Image</h3>
+              <p className="text-xs text-gray-500">A landscape photo covers the homepage banner behind the text</p>
+            </div>
+            {heroImage && (
+              <button onClick={removeHero} className="text-xs text-red-600 font-semibold hover:underline">Remove</button>
+            )}
+          </div>
+          {heroError && <div className="bg-red-50 text-red-600 text-xs p-2 rounded mb-3">{heroError}</div>}
+          <div className="flex items-center gap-4">
+            <div className="w-40 h-20 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50 flex items-center justify-center shrink-0">
+              {heroImage ? <img src={heroImage} alt="Hero" className="w-full h-full object-cover" /> : <span className="text-gray-400 text-xs">No image</span>}
+            </div>
+            <label className={`cursor-pointer px-5 py-2.5 rounded-lg font-semibold text-sm ${heroUploading ? "bg-gray-200 text-gray-500" : "bg-[#1b5e20] text-white hover:bg-[#0d3818]"}`}>
+              {heroUploading ? "Uploading..." : heroImage ? "Replace Image" : "Upload Landscape Image"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                disabled={heroUploading}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHero(f); e.currentTarget.value = ""; }}
+              />
+            </label>
+          </div>
         </div>
 
         {/* Pending Verifications Tab */}
@@ -301,6 +393,67 @@ export default function Admin() {
                         onClick={() => handleVerification(u.id, "reject")}
                         className="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-red-700"
                       >❌ Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Users Tab — manage every registered account */}
+        {activeTab === "users" && (
+          <div>
+            <h2 className="text-lg font-bold text-[#1b5e20] mb-3">All Users</h2>
+            {allUsers.length === 0 ? (
+              <div className="bg-white rounded-xl shadow border border-gray-200 p-10 text-center text-gray-400">
+                <div className="text-4xl mb-3">👥</div>
+                <div className="font-semibold">No registered users yet</div>
+                <div className="text-sm">Farmers and buyers will appear here when they sign up.</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {allUsers.map((u) => (
+                  <div key={u.id} className="bg-white rounded-xl shadow border border-gray-200 p-4 flex items-center gap-4 flex-wrap">
+                    <div className="w-12 h-12 rounded-full bg-[#e8f5e9] flex items-center justify-center text-xl shrink-0">
+                      {u.role === "farmer" ? "👨‍🌾" : "🏪"}
+                    </div>
+                    <div className="flex-1 min-w-[180px]">
+                      <div className="font-bold">{u.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {u.phone} · <span className={`font-semibold ${u.role === "farmer" ? "text-[#1b5e20]" : "text-[#e65100]"}`}>{u.role}</span>
+                        {u.idNumber && <span className="ml-2 font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">{u.idNumber}</span>}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">Joined {new Date(u.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {u.status === "pending" && <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">Pending</span>}
+                      {u.status === "approved" && <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">Approved</span>}
+                      {u.status === "rejected" && <span className="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full">Rejected</span>}
+                      {(u.ghanaCardUrl || u.passportUrl) && (
+                        <button
+                          onClick={() => setCardModal(u.idType === "passport" ? u.passportUrl : u.ghanaCardUrl)}
+                          className="text-xs text-[#1b5e20] font-semibold hover:underline"
+                        >
+                          View ID
+                        </button>
+                      )}
+                      {u.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() => handleVerification(u.id, "approve")}
+                            className="bg-[#1b5e20] text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#0d3818]"
+                          >✅ Approve</button>
+                          <button
+                            onClick={() => handleVerification(u.id, "reject")}
+                            className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700"
+                          >❌ Reject</button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => handleDeleteUser(u.id, u.name)}
+                        className="border-2 border-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-50"
+                      >🗑 Delete</button>
                     </div>
                   </div>
                 ))}

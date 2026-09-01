@@ -5,14 +5,24 @@ import { sendSms } from "@/lib/otp";
 
 // Admin user-verification endpoints — gated to verified admin sessions
 // (the adminVerified cookie minted after the email-code check).
+//
+// GET    ?status=pending (default) | all    — list users for the admin panel
+// PATCH  { userId, action: approve|reject } — verify a signup (+SMS to user)
+// DELETE { userId }                          — remove a user and all their data
+
 export async function GET(req: NextRequest) {
     const session = await getAdminSession(req);
     if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const { searchParams } = new URL(req.url);
+    const statusFilter = searchParams.get("status") || "pending";
+
     const users = await prisma.user.findMany({
-        where: { status: "pending", role: { not: "admin" } },
-        orderBy: { createdAt: "asc" },
+        where: statusFilter === "all"
+            ? { role: { not: "admin" } }
+            : { status: statusFilter, role: { not: "admin" } },
+        orderBy: { createdAt: "desc" },
         select: {
             id: true, name: true, phone: true, role: true,
             status: true, ghanaCardUrl: true, createdAt: true,
@@ -62,4 +72,50 @@ export async function PATCH(req: NextRequest) {
     const { sent } = await sendSms(user.phone, sms).catch(() => ({ sent: false }));
 
     return NextResponse.json({ id: user.id, status: user.status, smsSent: sent });
+}
+
+export async function DELETE(req: NextRequest) {
+    const session = await getAdminSession(req);
+    if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { userId } = await req.json();
+    if (!userId) {
+        return NextResponse.json({ error: "userId required" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    if (user.role === "admin") {
+        return NextResponse.json({ error: "Admin accounts cannot be deleted" }, { status: 403 });
+    }
+
+    // Clean up every dependent row so FK constraints don't block the delete.
+    // Orders keep their denormalized names/phones (no FK) — sales history
+    // survives for the audit trail, which matters for money accounting.
+    const farmer = await prisma.farmer.findUnique({ where: { userId } });
+    if (farmer) {
+        await prisma.review.deleteMany({ where: { farmerId: farmer.id } });
+        await prisma.listing.deleteMany({ where: { farmerId: farmer.id } });
+    }
+    await prisma.farmer.deleteMany({ where: { userId } }).catch(() => { });
+    await prisma.buyer.deleteMany({ where: { userId } }).catch(() => { });
+    await prisma.review.deleteMany({ where: { buyerId: userId } });
+    await prisma.otpCode.deleteMany({ where: { phone: user.phone } });
+    await prisma.storedFile.deleteMany({ where: { ownerId: userId } });
+    await prisma.user.delete({ where: { id: userId } });
+
+    await prisma.auditLog.create({
+        data: {
+            actorId: session.userId,
+            actorName: "admin",
+            action: "user.delete",
+            targetId: userId,
+            details: `${user.name} (${user.phone}, ${user.role}, ${user.status}) → deleted`,
+        },
+    });
+
+    return NextResponse.json({ ok: true, deleted: user.name });
 }
