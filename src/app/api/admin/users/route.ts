@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest) {
     const sms =
         action === "approve"
             ? `FarmLink: Good news ${user.name}! Your identity has been verified and your ${user.role} account is now active. Log in at framlinkgh.vercel.app to start.`
-            : `FarmLink: ${user.name}, your account verification was not successful. Please re-register with a clear photo of your Ghana Card or passport showing the correct number.`;
+            : `FarmLink: ${user.name}, your account was not approved. Contact support 0595726252 / info.rametechconsultancy@gmail.com or re-register with a clear Ghana Card/passport photo.`;
     const { sent } = await sendSms(user.phone, sms).catch(() => ({ sent: false }));
 
     return NextResponse.json({ id: user.id, status: user.status, smsSent: sent });

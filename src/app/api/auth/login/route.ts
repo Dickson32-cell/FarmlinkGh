@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (user.status === "rejected") {
       return NextResponse.json(
         {
-          error: "Your account was not approved. Please contact support or re-register with a valid Ghana Card.",
+          error: "Your account was not approved. Please contact support — 0595726252 / info.rametechconsultancy@gmail.com — or re-register with a valid Ghana Card.",
           status: "rejected",
         },
         { status: 403 }

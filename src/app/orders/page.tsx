@@ -76,6 +76,17 @@ export default function Orders() {
     loadOrders();
   };
 
+  const requestRefund = async (orderId: string, crop: string) => {
+    const reason = prompt(`Why are you requesting a refund for ${crop}? (optional, helps the admin review)`) ?? "";
+    if (!confirm("Request a refund? The admin will review and send your money back within 2-3 days.")) return;
+    await fetch("/api/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: orderId, status: "refund_requested" }),
+    });
+    loadOrders();
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>;
 
   const statusColors: any = {
@@ -84,6 +95,8 @@ export default function Orders() {
     delivered: "bg-green-50 text-green-600",
     released: "bg-[#1b5e20] text-white",
     cancelled: "bg-red-50 text-red-600",
+    refund_requested: "bg-amber-50 text-amber-700",
+    refunded: "bg-[#e8f5e9] text-[#1b5e20]",
   };
 
   return (
@@ -182,8 +195,19 @@ export default function Orders() {
                       ✓ Confirm Delivery
                     </button>
                   )}
+                  {(o.status === "paid" || o.status === "delivered") && (
+                    <button onClick={() => requestRefund(o.id, o.crop)} className="bg-red-50 border-2 border-red-200 text-red-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-100">
+                      ↩ Request Refund
+                    </button>
+                  )}
                   {o.status === "delivered" && (
                     <span className="text-sm text-gray-500 italic">Waiting for admin to release payment to farmer</span>
+                  )}
+                  {o.status === "refund_requested" && (
+                    <span className="text-sm text-amber-600 font-semibold">↩ Refund requested — admin will send your money within 2-3 days</span>
+                  )}
+                  {o.status === "refunded" && (
+                    <span className="text-sm text-[#1b5e20] font-semibold">✓ Refund sent by admin</span>
                   )}
                   {o.status === "released" && (
                     <span className="text-sm text-[#1b5e20] font-semibold">✓ Payment released to farmer</span>

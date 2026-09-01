@@ -91,13 +91,14 @@ export async function PATCH(req: NextRequest) {
     // Role-based status transitions
     const adminSession = await getAdminSession(req);
     if (adminSession) {
-      const validStatuses = ["pending", "paid", "delivered", "released", "cancelled"];
+      const validStatuses = ["pending", "paid", "delivered", "released", "cancelled", "refund_requested", "refunded"];
       if (!validStatuses.includes(status))
         return NextResponse.json({ error: "Invalid status" }, { status: 400 });
 
-      // Step-up auth: releasing money requires a fresh admin-action token
-      // (minted only after an EMAIL code to ADMIN_EMAIL — see /api/auth/admin-otp)
-      if (status === "released") {
+      // Step-up auth: moving money (releasing to farmer OR refunding the buyer)
+      // requires a fresh admin-action token (minted only after an EMAIL code
+      // to ADMIN_EMAIL — see /api/auth/admin-otp)
+      if (status === "released" || status === "refunded") {
         const actionPayload = await getAdminActionToken(req);
         if (!actionPayload) {
           return NextResponse.json(
@@ -109,7 +110,11 @@ export async function PATCH(req: NextRequest) {
 
       const updated = await prisma.order.update({
         where: { id },
-        data: { status, adminNote: adminNote || order.adminNote },
+        data: {
+          status,
+          adminNote: adminNote || order.adminNote,
+          refundedAt: status === "refunded" ? new Date() : order.refundedAt,
+        },
       });
 
       // Audit trail — who changed what
@@ -122,6 +127,30 @@ export async function PATCH(req: NextRequest) {
           details: `${order.crop} x${order.quantity} | GHS ${order.totalAmount} | ${order.buyerName} -> ${order.farmerName}`,
         },
       });
+
+      // SMS notifications on refund events
+      if (status === "refund_requested") {
+        // tell the farmer someone disputed their product
+        const { sendSms } = await import("@/lib/otp");
+        await sendSms(order.farmerPhone,
+          `FarmLink: A refund was requested by ${order.buyerName} for order of ${order.crop} (${order.quantity} bags). Admin will review within 2-3 days.`)
+          .catch(() => { });
+      }
+      if (status === "refunded") {
+        // confirm to the buyer
+        const { sendSms } = await import("@/lib/otp");
+        await sendSms(order.buyerPhone,
+          `FarmLink: Your refund of GH₵${order.totalAmount.toFixed(2)} for ${order.crop} has been sent. If you don't receive it within 24h, contact 0595726252 / info.rametechconsultancy@gmail.com.`)
+          .catch(() => { });
+        try {
+          await prisma.listing.update({
+            where: { id: order.listingId },
+            data: { status: "available" },
+          });
+        } catch (e) {
+          console.error(`listing restore skipped for order ${id}:`, String(e).slice(0, 100));
+        }
+      }
 
       // If released, mark the listing as sold (non-fatal — legacy orders may
       // reference listings that no longer exist; the money event is the order)
@@ -140,19 +169,45 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (session.role === "buyer") {
-      // Buyer can only confirm delivery on THEIR OWN order (pending→delivered, paid→delivered)
-      if (status !== "delivered")
-        return NextResponse.json({ error: "Buyers can only confirm delivery" }, { status: 403 });
-      if (order.buyerId !== session.userId)
-        return NextResponse.json({ error: "You can only confirm delivery on your own orders" }, { status: 403 });
-      if (order.status !== "pending" && order.status !== "paid")
-        return NextResponse.json({ error: "Cannot confirm delivery at this stage" }, { status: 400 });
+      // Buyer can only: confirm delivery (pending→delivered, paid→delivered)
+      //                  or request a refund (paid→refund_requested, delivered→refund_requested)
+      if (status === "delivered") {
+        if (order.buyerId !== session.userId)
+          return NextResponse.json({ error: "You can only confirm delivery on your own orders" }, { status: 403 });
+        if (order.status !== "pending" && order.status !== "paid")
+          return NextResponse.json({ error: "Cannot confirm delivery at this stage" }, { status: 400 });
 
-      const updated = await prisma.order.update({
-        where: { id },
-        data: { status: "delivered", deliveredAt: new Date() },
-      });
-      return NextResponse.json(updated);
+        const updated = await prisma.order.update({
+          where: { id },
+          data: { status: "delivered", deliveredAt: new Date() },
+        });
+        return NextResponse.json(updated);
+      }
+
+      if (status === "refund_requested") {
+        if (order.buyerId !== session.userId)
+          return NextResponse.json({ error: "You can only request refunds on your own orders" }, { status: 403 });
+        if (order.status !== "paid" && order.status !== "delivered")
+          return NextResponse.json({ error: "Refunds can only be requested after payment" }, { status: 400 });
+
+        const updated = await prisma.order.update({
+          where: { id },
+          data: { status: "refund_requested", refundRequestedAt: new Date() },
+        });
+
+        // Notify farmer + admin
+        const { sendSms } = await import("@/lib/otp");
+        await sendSms(order.farmerPhone,
+          `FarmLink: ${order.buyerName} requested a refund for ${order.crop} (${order.quantity} bags). Admin will review within 2-3 days.`)
+          .catch(() => { });
+        await sendSms(process.env.ADMIN_MOMO || "0248847819",
+          `FarmLink ADMIN: Refund requested — order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GH₵${order.totalAmount.toFixed(2)}). Review in admin panel.`)
+          .catch(() => { });
+
+        return NextResponse.json(updated);
+      }
+
+      return NextResponse.json({ error: "Buyers can only confirm delivery or request refunds" }, { status: 403 });
     }
 
     return NextResponse.json({ error: "Not authorized to update orders" }, { status: 403 });

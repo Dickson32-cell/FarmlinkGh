@@ -130,6 +130,8 @@ model Order {
   paymentMethod   String?   // momo, card
   adminNote       String?
   deliveredAt     DateTime? // when buyer confirmed receipt
+  refundRequestedAt DateTime? // when buyer requested a refund
+  refundedAt      DateTime? // when admin sent the refund (2-3 day window)
   autoReleased    Boolean   @default(false) // set when 48h auto-release cron fires
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

@@ -24,7 +24,7 @@ export default function Admin() {
   const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, delivered: 0, released: 0, revenue: 0 });
   const [activeTab, setActiveTab] = useState<"verifications" | "orders">("verifications");
   const [cardModal, setCardModal] = useState<string | null>(null);
-  const [otpModal, setOtpModal] = useState<{ orderId: string; label: string } | null>(null);
+  const [otpModal, setOtpModal] = useState<{ orderId: string; label: string; status?: string } | null>(null);
   const [otpCode, setOtpCode] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
@@ -62,11 +62,15 @@ export default function Admin() {
   };
 
   const updateOrderStatus = async (id: string, status: string, note?: string, actionToken?: string) => {
-    const action = status === "paid" ? "confirm payment received" : status === "released" ? "release payment to farmer" : status === "cancelled" ? "cancel this order" : "update";
-    if (!actionToken && status === "released") {
-      // Money-movement — require admin OTP first
-      setOtpModal({ orderId: id, label: "release payment to farmer" });
-      // trigger the SMS code
+    const moneyActions: Record<string, string> = {
+      released: "release payment to farmer",
+      refunded: "send the refund to the buyer",
+    };
+    const action = moneyActions[status] || (status === "paid" ? "confirm payment received" : status === "cancelled" ? "cancel this order" : "update");
+    if (!actionToken && (status === "released" || status === "refunded")) {
+      // Money-movement — require admin email code first
+      setOtpModal({ orderId: id, label: action });
+      // trigger the email code
       await fetch("/api/auth/admin-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
       return;
     }
@@ -80,7 +84,7 @@ export default function Admin() {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       if (err.requireOtp) {
-        setOtpModal({ orderId: id, label: action });
+      setOtpModal({ orderId: id, label: action, status });
         await fetch("/api/auth/admin-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
         return;
       }
@@ -117,11 +121,18 @@ export default function Admin() {
   };
 
   const updateOtpVerified = async (id: string, actionToken: string) => {
+    // The step-up modal tells us which money action this token is for
+    const targetStatus = otpModal?.status || "released";
     await fetch("/api/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", "x-admin-action-token": actionToken },
-      body: JSON.stringify({ id, status: "released", adminNote: "Payment released after admin OTP confirmation" }),
+      body: JSON.stringify({
+        id,
+        status: targetStatus,
+        adminNote: targetStatus === "refunded" ? "Refund sent to buyer after admin confirmation" : "Payment released after admin OTP confirmation",
+      }),
     });
+    setOtpModal(null);
     loadAll();
   };
 
@@ -143,6 +154,8 @@ export default function Admin() {
     pending: "bg-amber-50 text-amber-600", paid: "bg-blue-50 text-blue-600",
     delivered: "bg-green-50 text-green-600", released: "bg-[#1b5e20] text-white",
     cancelled: "bg-red-50 text-red-600",
+    refund_requested: "bg-amber-50 text-amber-700 border border-amber-300",
+    refunded: "bg-[#e8f5e9] text-[#1b5e20]",
   };
 
   return (
@@ -346,6 +359,17 @@ export default function Admin() {
                           💰 Release Payment to Farmer (GH₵{o.farmerPayout.toFixed(2)})
                         </button>
                       )}
+                      {o.status === "refund_requested" && (
+                        <>
+                          <button onClick={() => updateOrderStatus(o.id, "refunded", `Refund of GH₵${o.totalAmount.toFixed(2)} sent to ${o.buyerName}`)} className="bg-[#e65100] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#bf5000]">
+                            ↩ Send Refund to {o.buyerName} (GH₵{o.totalAmount.toFixed(2)})
+                          </button>
+                          <button onClick={() => updateOrderStatus(o.id, "delivered", "Refund request declined — buyer contacted")} className="border-2 border-gray-200 text-gray-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-50">
+                            Decline Refund
+                          </button>
+                        </>
+                      )}
+                      {o.status === "refunded" && <span className="text-sm text-[#1b5e20] font-semibold">✓ Refund sent to buyer — GH₵{o.totalAmount.toFixed(2)}</span>}
                       {o.status === "released" && <span className="text-sm text-[#1b5e20] font-semibold">✓ Payment released — Commission: GH₵{o.commissionAmount.toFixed(2)}</span>}
                       {o.status === "cancelled" && <span className="text-sm text-red-500">Order cancelled</span>}
                     </div>

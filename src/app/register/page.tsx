@@ -20,6 +20,7 @@ function RegisterForm() {
   const [lookingFor, setLookingFor] = useState("");
   const [idType, setIdType] = useState<"ghana-card" | "passport">("ghana-card");
   const [idNumber, setIdNumber] = useState("");
+  const [policyAgreed, setPolicyAgreed] = useState(false);
   const [ghanaCardUrl, setGhanaCardUrl] = useState("");
   const [passportUrl, setPassportUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -231,6 +232,30 @@ function RegisterForm() {
             <strong>Admin will verify:</strong> the {idType === "ghana-card" ? "card number" : "passport number"} you entered must match the document in the photo exactly. Mismatches are rejected.
           </div>
 
+          {/* Farmer policy agreement — must be ticked to submit */}
+          {role === "farmer" && (
+            <div className={`border-2 rounded-xl p-4 mb-5 ${policyAgreed ? "border-[#43a047] bg-[#f6fbf6]" : "border-gray-200 bg-gray-50"}`}>
+              <div className="text-xs font-bold uppercase text-gray-500 mb-2">📋 Farmer Agreement — please read</div>
+              <ul className="text-xs text-gray-700 space-y-1.5 list-disc list-inside mb-3">
+                <li><strong>10% commission:</strong> FarmLink charges 10% on each completed sale (plus the payment processor fee). This is because the buyer receives the product and confirms it on the site — the escrow that protects both sides.</li>
+                <li><strong>Buyer confirmation:</strong> Your payment is released only after the buyer confirms on the site that they received the product. <strong>If the buyer delays confirmation, you (the farmer) can call or email the admin</strong> — 0595726252 / info.rametechconsultancy@gmail.com — and the admin will contact the buyer to confirm product received.</li>
+                <li><strong>2-3 day payout:</strong> After the buyer confirms, your money is sent to you within 2-3 days.</li>
+                <li><strong>Refunds:</strong> If a buyer is not satisfied with your product, they may request a refund; the admin reviews and settles it within 2-3 days.</li>
+              </ul>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={policyAgreed}
+                  onChange={(e) => setPolicyAgreed(e.target.checked)}
+                  className="mt-0.5 w-5 h-5 accent-[#1b5e20]"
+                />
+                <span className="text-sm font-semibold text-gray-700">
+                  I have read and accept the FarmLink farmer agreement (10% commission, buyer confirmation before payment, 2-3 day payout).
+                </span>
+              </label>
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
               type="button"
@@ -240,7 +265,7 @@ function RegisterForm() {
             <button
               type="button"
               onClick={submit}
-              disabled={!idFileUrl || !idNumberValid || loading}
+              disabled={!idFileUrl || !idNumberValid || loading || (role === "farmer" && !policyAgreed)}
               className="flex-1 bg-[#1b5e20] text-white py-3 rounded-lg font-semibold hover:bg-[#0d3818] disabled:opacity-50"
             >{loading ? "Submitting..." : "Submit Registration"}</button>
           </div>
