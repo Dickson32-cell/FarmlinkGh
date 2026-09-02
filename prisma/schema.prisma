@@ -112,7 +112,7 @@ model Order {
   quantity        Int
   unitPrice       Float
   totalAmount     Float     // quantity * unitPrice
-  commissionRate   Float    @default(0.10) // 10% admin commission
+  commissionRate   Float    @default(0.05) // 5% admin commission
   hubtelFeeRate   Float    @default(0.015) // 1.5% Hubtel fee
   commissionAmount Float
   hubtelFeeAmount Float     // 1.5% of total

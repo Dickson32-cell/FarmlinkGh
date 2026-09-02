@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, getAdminSession, getAdminActionToken } from "@/lib/session";
 
-const COMMISSION_RATE = parseFloat(process.env.COMMISSION_RATE || "0.10");
+const COMMISSION_RATE = parseFloat(process.env.COMMISSION_RATE || "0.05");
 const HUBTEL_FEE_RATE = parseFloat(process.env.HUBTEL_FEE_RATE || "0.015");
 
 // GET orders — buyer sees own, farmer sees own, admin sees all

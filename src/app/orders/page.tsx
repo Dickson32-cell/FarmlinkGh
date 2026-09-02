@@ -175,7 +175,7 @@ export default function Orders() {
                 {/* Payment breakdown */}
                 <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 mb-3 grid grid-cols-3 gap-2">
                   <div>Farmer gets: <strong className="text-[#1b5e20]">GH₵{o.farmerPayout.toFixed(2)}</strong></div>
-                  <div>Admin (10%): <strong>GH₵{o.commissionAmount.toFixed(2)}</strong></div>
+                  <div>Platform fee (5%): <strong>GH₵{o.commissionAmount.toFixed(2)}</strong></div>
                   <div>Payment fee: <strong>GH₵{(o.totalAmount - o.farmerPayout - o.commissionAmount).toFixed(2)}</strong></div>
                 </div>
 
