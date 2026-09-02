@@ -23,12 +23,15 @@ export default function HeaderBanner() {
   if (!img) return null;
   return (
     <>
+      {/* -z-10 keeps the banner BEHIND the header content (logo, name,
+          buttons). Positioned elements otherwise paint OVER in-flow
+          content, hiding the nav buttons behind the photo + overlay. */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-cover bg-center pointer-events-none"
+        className="absolute inset-0 bg-cover bg-center pointer-events-none -z-10"
         style={{ backgroundImage: `url(${img})` }}
       />
-      <div aria-hidden className="absolute inset-0 bg-[#0d3818]/70 pointer-events-none" />
+      <div aria-hidden className="absolute inset-0 bg-[#0d3818]/70 pointer-events-none -z-10" />
     </>
   );
 }
