@@ -131,6 +131,29 @@ export async function POST(req: NextRequest) {
             await new Promise((r) => setTimeout(r, 50));
           }
         }
+
+        // ── WISHLIST ALERT: buyers who saved this exact crop also get an
+        // in-app notification (on top of the SMS above) ──
+        if (isFirst || isCheaper) {
+          const wishers = await prisma.wishlist.findMany({
+            where: { crop: { equals: body.crop, mode: "insensitive" } },
+            select: { userId: true },
+            distinct: ["userId"],
+          });
+          for (const w of wishers) {
+            await prisma.notification.create({
+              data: {
+                userId: w.userId,
+                type: "price",
+                title: isFirst ? `${body.crop} is now on the market` : `Price drop — ${body.crop}`,
+                body: isFirst
+                  ? `${body.crop} is now listed at GH₵${listing.price}/bag by ${farmer.name} in ${listing.region}.`
+                  : `${body.crop} now costs GH₵${listing.price}/bag (was GH₵${prevLowest}). By ${farmer.name} in ${listing.region}.`,
+                link: `/market/${listing.id}`,
+              },
+            }).catch(() => {});
+          }
+        }
       }
     } catch (err) {
       console.error("[PRICE-ALERT] skipped:", String(err).slice(0, 120));

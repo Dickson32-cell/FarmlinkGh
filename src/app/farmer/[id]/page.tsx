@@ -33,6 +33,7 @@ interface Farmer {
 }
 
 import HeaderBanner from "@/components/headerBanner";
+import NotificationBell from "@/components/notificationBell";
 
 export default function FarmerProfile() {
   const { id } = useParams();
@@ -91,7 +92,10 @@ export default function FarmerProfile() {
           <img src="/logo.jpg" alt="FarmLink" className="w-9 h-9 rounded-full ring-2 ring-white/30" />
           FarmLink <span className="opacity-70 text-sm font-normal">Ghana</span>
         </div>
-        <Link href="/market" className="px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>
+        <div className="flex items-center gap-2">
+          <Link href="/market" className="px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>
+          <NotificationBell />
+        </div>
       </header>
 
       <div className="max-w-4xl mx-auto p-6">

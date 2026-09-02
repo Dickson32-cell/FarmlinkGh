@@ -9,6 +9,7 @@ interface User { id: string; name: string; role: string; phone: string; }
 interface Listing { id: string; crop: string; quantity: number; price: number; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes: string | null; images: string; farmer?: { name: string; phone: string; }; }
 
 import HeaderBanner from "@/components/headerBanner";
+import NotificationBell from "@/components/notificationBell";
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
@@ -148,6 +149,7 @@ export default function Dashboard() {
         <div className="flex gap-2">
           {user.role !== "farmer" && <Link href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>}
           <Link href="/prices" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#1565c0] hover:bg-[#0d47a1] text-white">Prices</Link>
+          <NotificationBell />
           <Link href="/profile" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#7b1fa2] hover:bg-[#6a1b9a] text-white">Profile</Link>
           {user.role === "buyer" && <Link href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">My Orders</Link>}
           {user.role === "farmer" && <Link href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">Orders to Deliver</Link>}

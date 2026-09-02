@@ -40,6 +40,8 @@ async function runJob() {
     for (const user of oldRejected) {
       // change requests FK-block user deletion — clear them first
       await prisma.profileChangeRequest.deleteMany({ where: { userId: user.id } }).catch(() => { });
+      await prisma.wishlist.deleteMany({ where: { userId: user.id } }).catch(() => { });
+      await prisma.notification.deleteMany({ where: { userId: user.id } }).catch(() => { });
       const farmer = await prisma.farmer.findUnique({ where: { userId: user.id } });
       if (farmer) {
         await prisma.review.deleteMany({ where: { farmerId: farmer.id } });

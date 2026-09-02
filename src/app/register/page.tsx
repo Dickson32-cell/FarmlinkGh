@@ -90,41 +90,74 @@ function RegisterForm() {
     });
     const data = await res.json();
     if (res.ok) {
-      setStep(3); // Show pending confirmation
+      setStep(3); // Show confirmation (buyers: active, farmers: under review)
     } else {
       setError(data.error || "Registration failed");
     }
     setLoading(false);
   };
 
-  // ─── Step 3: Pending Confirmation ───────────────────────────────────────────
+  // Step 1 "Next" — buyers submit straight away (no ID needed); farmers go to ID verification
+  const step1Next = () => {
+    setError("");
+    if (role === "buyer") submit();
+    else setStep(2);
+  };
+
+  // ─── Step 3: Confirmation ───────────────────────────────────────────────────
   if (step === 3) {
+    const isBuyer = role === "buyer";
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1b5e20] to-[#0d3818] p-4">
         <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md text-center">
-          <h1 className="text-2xl font-bold text-[#1b5e20] mb-2">Registration Submitted!</h1>
-          <p className="text-gray-600 mb-4">Thank you, <strong>{name}</strong>. Your account has been created and is now under review.</p>
+          <h1 className="text-2xl font-bold text-[#1b5e20] mb-2">{isBuyer ? "Account Created!" : "Registration Submitted!"}</h1>
+          <p className="text-gray-600 mb-4">
+            Thank you, <strong>{name}</strong>.{" "}
+            {isBuyer ? "Your buyer account is active right away." : "Your account has been created and is now under review."}
+          </p>
           <div className="bg-[#e8f5e9] border border-[#43a047] rounded-xl p-5 mb-6 text-left">
             <div className="flex items-start gap-3">
               <div>
-                <div className="font-bold text-[#1b5e20] mb-1">Verification in Progress</div>
+                <div className="font-bold text-[#1b5e20] mb-1">{isBuyer ? "You can start buying now" : "Verification in Progress"}</div>
                 <p className="text-sm text-[#2e7d32]">
-                  Our team will verify your <strong>Ghana Card</strong> and account details.
-                  This process takes <strong>2–3 working days</strong>.
+                  {isBuyer ? (
+                    <>
+                      Log in with your phone and password — no waiting, no documents needed.
+                      Your phone number is verified by SMS code at login, and every payment you make is held in escrow until you confirm delivery.
+                    </>
+                  ) : (
+                    <>
+                      Our team will verify your <strong>Ghana Card</strong> and account details.
+                      This process takes <strong>2–3 working days</strong>.
+                    </>
+                  )}
                 </p>
-                <p className="text-sm text-[#2e7d32] mt-2">
-                  You will be able to log in once your account is approved.
-                </p>
+                {!isBuyer && (
+                  <p className="text-sm text-[#2e7d32] mt-2">
+                    You will be able to log in once your account is approved.
+                  </p>
+                )}
               </div>
             </div>
           </div>
           <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 mb-6">
-            <div className="font-semibold mb-1">What happens next?</div>
+            <div className="font-semibold mb-1">{isBuyer ? "What happens next?" : "What happens next?"}</div>
             <ol className="text-left space-y-1 list-decimal list-inside">
-              <li>Admin reviews your Ghana Card photo</li>
-              <li>Your name is verified against the card</li>
-              <li>Account is approved (2–3 working days)</li>
-              <li>You can then log in and start using FarmLink</li>
+              {isBuyer ? (
+                <>
+                  <li>Log in with your phone, password and SMS code</li>
+                  <li>Browse the market and order produce</li>
+                  <li>The farmer is notified and starts delivery after your payment</li>
+                  <li>You confirm delivery — then the farmer is paid</li>
+                </>
+              ) : (
+                <>
+                  <li>Admin reviews your Ghana Card photo</li>
+                  <li>Your name is verified against the card</li>
+                  <li>Account is approved (2–3 working days)</li>
+                  <li>You can then log in and start listing produce</li>
+                </>
+              )}
             </ol>
           </div>
           <Link href="/login" className="block w-full bg-[#1b5e20] text-white py-3 rounded-lg font-semibold hover:bg-[#0d3818]">
@@ -152,7 +185,7 @@ function RegisterForm() {
           </div>
           <h1 className="text-xl font-bold text-[#1b5e20] mb-1">Identity Verification</h1>
           <p className="text-sm text-gray-500 mb-4">
-            We verify every member&apos;s identity before they can trade. Choose your ID type.
+            Farmers are ID-verified before they can sell — this is what protects buyers from fraud. Choose your ID type.
           </p>
 
           {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
@@ -372,10 +405,10 @@ function RegisterForm() {
           )}
           <button
             type="button"
-            onClick={() => { setError(""); setStep(2); }}
-            disabled={!step1Valid}
+            onClick={step1Next}
+            disabled={!step1Valid || loading}
             className="w-full p-3 bg-[#1b5e20] text-white rounded-lg font-semibold hover:bg-[#0d3818] disabled:opacity-50"
-          >Next: Upload Ghana Card →</button>
+          >{role === "buyer" ? (loading ? "Creating your account..." : "Create My Buyer Account →") : "Next: Identity Verification →"}</button>
         </div>
         <p className="text-center text-sm text-gray-500 mt-4">Have an account? <Link href="/login" className="text-[#e65100] font-semibold">Login</Link></p>
       </div>

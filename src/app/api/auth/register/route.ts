@@ -9,41 +9,53 @@ export async function POST(req: NextRequest) {
     if (!name || !phone || !password || !role) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
     }
-
-    // Identity verification — Ghana Card (strict format) or Passport
-    const ID = String(idType || "ghana-card");
-    if (ID === "ghana-card") {
-      if (!ghanaCardUrl) {
-        return NextResponse.json({ error: "Ghana Card photo is required for verification" }, { status: 400 });
-      }
-      // Ghana Card number: GHA-123456789-0 (GHA + 9 digits + check digit)
-      const num = String(idNumber || "").toUpperCase().trim();
-      if (!/^GHA-\d{9}-\d$/.test(num)) {
-        return NextResponse.json(
-          { error: "Ghana Card number must look like GHA-123456789-0" },
-          { status: 400 }
-        );
-      }
-    } else if (ID === "passport") {
-      if (!passportUrl) {
-        return NextResponse.json({ error: "Passport photo page is required for verification" }, { status: 400 });
-      }
-      const num = String(idNumber || "").toUpperCase().trim();
-      if (num.length < 5 || num.length > 15) {
-        return NextResponse.json(
-          { error: "Enter a valid passport number (5-15 characters)" },
-          { status: 400 }
-        );
-      }
-    } else {
-      return NextResponse.json({ error: "Invalid ID type" }, { status: 400 });
+    if (!["farmer", "buyer"].includes(role)) {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
+    // ===== BUYERS: no ID document required. =====
+    // Escrow protects the seller: the buyer pays BEFORE the farmer delivers,
+    // and the platform holds the money. A phone number (verified by OTP at
+    // login) is all the identity a buyer needs — same policy as Jumia/
+    // Amazon/Tonaton. Buyers are approved instantly; the admin still gets
+    // an SMS alert on every signup and can delete bad actors any time.
+    // ===== FARMERS: full Ghana Card / passport verification stays. =====
+    let ID = "none";
+    if (role === "farmer") {
+      ID = String(idType || "ghana-card");
+      if (!["ghana-card", "passport"].includes(ID)) {
+        return NextResponse.json({ error: "Invalid ID type" }, { status: 400 });
+      }
+      if (ID === "ghana-card") {
+        if (!ghanaCardUrl) {
+          return NextResponse.json({ error: "Ghana Card photo is required for verification" }, { status: 400 });
+        }
+        const num = String(idNumber || "").toUpperCase().trim();
+        if (!/^GHA-\d{9}-\d$/.test(num)) {
+          return NextResponse.json(
+            { error: "Ghana Card number must look like GHA-123456789-0" },
+            { status: 400 }
+          );
+        }
+      } else if (ID === "passport") {
+        if (!passportUrl) {
+          return NextResponse.json({ error: "Passport photo page is required for verification" }, { status: 400 });
+        }
+        const num = String(idNumber || "").toUpperCase().trim();
+        if (num.length < 5 || num.length > 15) {
+          return NextResponse.json(
+            { error: "Enter a valid passport number (5-15 characters)" },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // Rejected users get a fresh start: their old account is replaced so
+    // they can re-register with a better photo/number as the rejection
+    // message instructs. Pending/approved accounts still block the phone.
     const existing = await prisma.user.findUnique({ where: { phone } });
     if (existing) {
-      // Rejected users get a fresh start: their old account is replaced so
-      // they can re-register with a better photo/number as the rejection
-      // message instructs. Pending/approved accounts still block the phone.
       if (existing.status === "rejected") {
         await prisma.farmer.deleteMany({ where: { userId: existing.id } }).catch(() => {});
         await prisma.buyer.deleteMany({ where: { userId: existing.id } }).catch(() => {});
@@ -60,11 +72,13 @@ export async function POST(req: NextRequest) {
         phone,
         password: hashed,
         role,
-        status: "pending",
-        ghanaCardUrl: ID === "ghana-card" ? ghanaCardUrl : "",
-        passportUrl: ID === "passport" ? passportUrl : "",
-        idType: ID,
-        idNumber: String(idNumber || "").toUpperCase().trim(),
+        // Buyers are approved instantly (no ID to review); farmers stay
+        // pending until the admin verifies their Ghana Card / passport.
+        status: role === "buyer" ? "approved" : "pending",
+        ghanaCardUrl: role === "farmer" && ID === "ghana-card" ? ghanaCardUrl : "",
+        passportUrl: role === "farmer" && ID === "passport" ? passportUrl : "",
+        idType: role === "farmer" ? ID : "none",
+        idNumber: role === "farmer" ? String(idNumber || "").toUpperCase().trim() : "",
         lastNetwork: detectNetwork(phone),
       },
     });
@@ -94,18 +108,47 @@ export async function POST(req: NextRequest) {
         },
       });
     }
-    // No session cookie — user must be approved by admin before login
-    // ADMIN ALERT: instant SMS to the admin so approvals happen fast
+    // No session cookie for farmers — they must be admin-approved first.
+    // Buyers are approved instantly, but still get no cookie here; they log
+    // in with phone + password + SMS OTP like everyone else.
+    // ADMIN ALERT: instant SMS to the admin on every signup (buyers included)
     try {
       const { sendSms } = await import("@/lib/otp");
       await sendSms(
         process.env.ADMIN_MOMO || "0248847819",
-        `FarmLink: New ${role} registration - ${name} (${phone}). Approve in admin panel.`,
+        role === "buyer"
+          ? `FarmLink: New buyer signup - ${name} (${phone}). Auto-approved (no ID needed for buyers).`
+          : `FarmLink: New ${role} registration - ${name} (${phone}). Approve in admin panel.`,
       );
     } catch (err) {
       console.error("[ADMIN-ALERT-SMS] registration alert failed:", String(err).slice(0, 120));
     }
-    return NextResponse.json({ success: true, message: "Registration submitted. Verification takes 2-3 working days." });
+
+    // In-app welcome notification
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          type: "system",
+          title: "Welcome to FarmLink",
+          body:
+            role === "buyer"
+              ? "Your buyer account is active. Browse the market and order produce — farmer contacts unlock after payment."
+              : "Your farmer registration was received. Verification takes 2-3 working days; you can log in once approved.",
+          link: role === "buyer" ? "/market" : "/dashboard",
+        },
+      });
+    } catch {
+      // non-fatal
+    }
+
+    return NextResponse.json({
+      success: true,
+      message:
+        role === "buyer"
+          ? "Registration complete. You can log in now with your phone and password."
+          : "Registration submitted. Verification takes 2-3 working days.",
+    });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

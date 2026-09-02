@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ghanaRegions, ghanaTowns } from "@/lib/ghana-data";
 
 import HeaderBanner from "@/components/headerBanner";
+import NotificationBell from "@/components/notificationBell";
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
@@ -138,6 +139,7 @@ export default function Profile() {
         <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Profile</span></div>
         <div className="flex gap-2">
           {user?.role !== "farmer" && user && (<a href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">My Orders</a>)}
+          <NotificationBell />
           <Link href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</Link>
           <Link href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>
         </div>

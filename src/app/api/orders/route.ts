@@ -107,6 +107,31 @@ export async function POST(req: NextRequest) {
       console.error("[ORDER-RELAY] farmer SMS failed (order still created):", String(err).slice(0, 120));
     }
 
+    // In-app notifications: farmer learns of the order; buyer gets a record
+    try {
+      const ref = order.id.slice(-8).toUpperCase();
+      await prisma.notification.create({
+        data: {
+          userId: listing.farmer.userId,
+          type: "order",
+          title: `New order ${ref} — ${listing.crop}`,
+          body: `${buyer?.name || "A buyer"} wants ${quantity} bag(s) of ${listing.crop} at GHS${listing.price}/bag (GHS${totalAmount.toFixed(2)} total). Waiting for their payment.`,
+          link: "/orders",
+        },
+      });
+      await prisma.notification.create({
+        data: {
+          userId: session.userId,
+          type: "order",
+          title: `Order ${ref} placed — ${listing.crop}`,
+          body: `You ordered ${quantity} bag(s) of ${listing.crop} (GHS${totalAmount.toFixed(2)}). Pay now so the farmer can start delivery. Farmer contact unlocks after payment.`,
+          link: "/orders",
+        },
+      });
+    } catch {
+      /* non-fatal */
+    }
+
     return NextResponse.json(order);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -240,6 +265,58 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
+      // ---- In-app notifications mirroring the SMS events ----
+      try {
+        const ref = updated.id.slice(-8).toUpperCase();
+        if (status === "paid") {
+          await prisma.notification.create({
+            data: {
+              userId: order.buyerId,
+              type: "payment",
+              title: `Payment received — order ${ref}`,
+              body: `Your payment of GHS${updated.totalAmount.toFixed(2)} for ${updated.crop} is confirmed. Farmer contact unlocked: ${updated.farmerName} (${updated.farmerPhone}). They are starting delivery.`,
+              link: "/orders",
+            },
+          });
+        } else if (status === "refund_requested") {
+          await prisma.notification.create({
+            data: {
+              userId: order.buyerId,
+              type: "refund",
+              title: `Refund requested — order ${ref}`,
+              body: `Your refund request for ${order.crop} is under review. The admin settles it within 2-3 days.`,
+              link: "/orders",
+            },
+          });
+        } else if (status === "refunded") {
+          const actual = updated.refundAmount ?? updated.totalAmount;
+          const deduction = updated.damageDeduction || 0;
+          await prisma.notification.create({
+            data: {
+              userId: order.buyerId,
+              type: "refund",
+              title: `Refund sent — GHS${actual.toFixed(2)}`,
+              body: deduction > 0
+                ? `GHS${actual.toFixed(2)} refunded for ${order.crop} (GHS${deduction.toFixed(2)} damage deduction applied). It arrives within 24h.`
+                : `Your full refund of GHS${actual.toFixed(2)} for ${order.crop} has been sent. It arrives within 24h.`,
+              link: "/orders",
+            },
+          });
+        } else if (status === "released") {
+          await prisma.notification.create({
+            data: {
+              userId: order.buyerId,
+              type: "order",
+              title: `Order ${ref} complete`,
+              body: `Payment was released to ${updated.farmerName}. Thank you for trading on FarmLink — rate the farmer on their profile.`,
+              link: "/orders",
+            },
+          });
+        }
+      } catch {
+        /* non-fatal */
+      }
+
       return NextResponse.json(updated);
     }
 
@@ -263,6 +340,31 @@ export async function PATCH(req: NextRequest) {
           await sendSms(order.buyerPhone,
             `FarmLink: Delivery confirmed for ${order.crop} x${order.quantity}. You have 3 days to request a refund if the product falls short. After that the farmer is paid.`)
             .catch(() => { });
+        } catch { /* non-fatal */ }
+
+        // In-app: buyer gets the window reminder; farmer learns delivery was confirmed
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: session.userId,
+              type: "order",
+              title: "Delivery confirmed",
+              body: `You confirmed ${order.crop} x${order.quantity}. You have 3 days to request a refund — after that the farmer is paid.`,
+              link: "/orders",
+            },
+          });
+          const farmerRow = await prisma.farmer.findUnique({ where: { id: order.farmerId } });
+          if (farmerRow) {
+            await prisma.notification.create({
+              data: {
+                userId: farmerRow.userId,
+                type: "order",
+                title: `Delivery confirmed — order ${order.id.slice(-8).toUpperCase()}`,
+                body: `${order.buyerName} confirmed delivery of ${order.crop} x${order.quantity}. Your payout of GHS${order.farmerPayout.toFixed(2)} is sent after the 3-day refund window closes.`,
+                link: "/orders",
+              },
+            });
+          }
         } catch { /* non-fatal */ }
 
         return NextResponse.json(updated);
@@ -305,6 +407,22 @@ export async function PATCH(req: NextRequest) {
           `FarmLink ADMIN: Refund requested — order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GH₵${order.totalAmount.toFixed(2)}). Review in admin panel.`)
           .catch(() => { });
 
+        // In-app: farmer learns a refund case opened on their order
+        try {
+          const farmerRow = await prisma.farmer.findUnique({ where: { id: order.farmerId } });
+          if (farmerRow) {
+            await prisma.notification.create({
+              data: {
+                userId: farmerRow.userId,
+                type: "refund",
+                title: `Refund requested — order ${order.id.slice(-8).toUpperCase()}`,
+                body: `${order.buyerName} requested a refund for ${order.crop} (${order.quantity} bags). The admin reviews within 2-3 days — you can file a damage complaint if the buyer damaged the produce.`,
+                link: "/orders",
+              },
+            });
+          }
+        } catch { /* non-fatal */ }
+
         return NextResponse.json(updated);
       }
 
@@ -333,6 +451,19 @@ export async function PATCH(req: NextRequest) {
         await sendSms(process.env.ADMIN_MOMO || "0248847819",
           `FarmLink ADMIN: Farmer complaint on order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GHS${order.totalAmount.toFixed(2)}) - refund under review. Check admin panel.`)
           .catch(() => { });
+
+        // In-app: buyer learns the farmer disputed the refund
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: order.buyerId,
+              type: "refund",
+              title: `Farmer filed a complaint — order ${order.id.slice(-8).toUpperCase()}`,
+              body: `${order.farmerName} reported damage on the returned ${order.crop}. The admin measures the damage and it may be subtracted from your refund.`,
+              link: "/orders",
+            },
+          });
+        } catch { /* non-fatal */ }
 
         return NextResponse.json(updated);
       }

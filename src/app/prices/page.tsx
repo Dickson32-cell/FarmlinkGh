@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 interface Price { id: string; crop: string; market: string; region: string; lowPrice: number; highPrice: number; trend: string; date: string; }
 
 import HeaderBanner from "@/components/headerBanner";
+import NotificationBell from "@/components/notificationBell";
 
 export default function Prices() {
   const [prices, setPrices] = useState<Price[]>([]);
@@ -25,6 +26,7 @@ export default function Prices() {
           <HeaderBanner />
         <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Price Board</span></div>
         <div className="flex gap-2">
+          <NotificationBell />
           <a href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</a>
           <a href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</a>
         </div>

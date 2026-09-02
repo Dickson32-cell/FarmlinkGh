@@ -92,6 +92,9 @@ export async function DELETE(req: NextRequest) {
         for (const user of rejected) {
             // change requests FK-block user deletion — clear them first
             await prisma.profileChangeRequest.deleteMany({ where: { userId: user.id } }).catch(() => { });
+            // wishlist + notifications also FK to User
+            await prisma.wishlist.deleteMany({ where: { userId: user.id } }).catch(() => { });
+            await prisma.notification.deleteMany({ where: { userId: user.id } }).catch(() => { });
             const farmer = await prisma.farmer.findUnique({ where: { userId: user.id } });
             if (farmer) {
                 await prisma.review.deleteMany({ where: { farmerId: farmer.id } });
@@ -133,6 +136,8 @@ export async function DELETE(req: NextRequest) {
     // survives for the audit trail, which matters for money accounting.
     // Change requests carry an FK to User — they MUST be cleared first.
     await prisma.profileChangeRequest.deleteMany({ where: { userId } }).catch(() => { });
+    await prisma.wishlist.deleteMany({ where: { userId } }).catch(() => { });
+    await prisma.notification.deleteMany({ where: { userId } }).catch(() => { });
     const farmer = await prisma.farmer.findUnique({ where: { userId } });
     if (farmer) {
         await prisma.review.deleteMany({ where: { farmerId: farmer.id } });

@@ -7,6 +7,7 @@ import { PriceInput, ProductInput } from "@/components/produceInputs";
 interface Listing { id: string; crop: string; quantity: number; price: number; grade: string; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes?: string; farmer?: { id?: string; name: string; phone: string; }; }
 
 import HeaderBanner from "@/components/headerBanner";
+import NotificationBell from "@/components/notificationBell";
 
 export default function Market() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -23,6 +24,22 @@ export default function Market() {
   const [farmerProducts, setFarmerProducts] = useState<string[]>([]);
   const [ratings, setRatings] = useState<Record<string, { avg: number; count: number }>>({});
   const [paidContact, setPaidContact] = useState<Record<string, boolean>>({});
+  // Buyer wishlist — which of the visible listings are saved
+  const [wishlisted, setWishlisted] = useState<Record<string, boolean>>({});
+
+  const toggleWishlist = async (listingId: string) => {
+    if (wishlisted[listingId]) {
+      await fetch("/api/wishlist", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ listingId }) });
+      setWishlisted((p) => ({ ...p, [listingId]: false }));
+    } else {
+      const res = await fetch("/api/wishlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ listingId }) });
+      if (res.ok) setWishlisted((p) => ({ ...p, [listingId]: true }));
+      else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Could not save");
+      }
+    }
+  };
   const regions = ghanaRegions;
 
   useEffect(() => {
@@ -31,7 +48,21 @@ export default function Market() {
   const crops = Array.from(new Set([...ghanaCrops, ...farmerProducts])).sort((a, b) => a.localeCompare(b));
 
   useEffect(() => {
-    fetch("/api/auth/me").then((r) => r.json()).then((d) => setUser(d.user || null));
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => {
+      const u = d.user || null;
+      setUser(u);
+      // Buyers: preload which listings are already wishlisted
+      if (u?.role === "buyer") {
+        fetch("/api/wishlist")
+          .then((r) => r.json())
+          .then((items: any[]) => {
+            const map: Record<string, boolean> = {};
+            (items || []).forEach((i) => { map[i.listingId] = true; });
+            setWishlisted(map);
+          })
+          .catch(() => {});
+      }
+    });
     loadListings();
   }, []);
 
@@ -126,9 +157,10 @@ export default function Market() {
       <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
           <HeaderBanner />
         <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Market</span></div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {user?.role === "buyer" && (<a href="/wishlist" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#7b1fa2] hover:bg-[#6a1b9a] text-white">Wishlist</a>)}
           {user?.role !== "farmer" && user && (<a href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">My Orders</a>)}
-          
+          <NotificationBell />
           <a href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</a>
           <a href="/prices" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#1565c0] hover:bg-[#0d47a1] text-white">Prices</a>
         </div>
@@ -240,7 +272,21 @@ export default function Market() {
                 )}
                 <div className="flex justify-between items-start mb-2">
                   <div className="font-bold text-lg">{l.crop}</div>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${l.status === "available" ? "bg-green-50 text-green-600" : l.status === "reserved" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`}>{l.status}</span>
+                  <div className="flex items-center gap-1.5">
+                    {/* Wishlist heart — buyers only */}
+                    {user?.role === "buyer" && (
+                      <button
+                        onClick={() => toggleWishlist(l.id)}
+                        title={wishlisted[l.id] ? "Remove from wishlist" : "Save to wishlist"}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${wishlisted[l.id] ? "bg-red-50 text-red-500" : "bg-gray-50 text-gray-300 hover:text-red-400"}`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill={wishlisted[l.id] ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                      </button>
+                    )}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${l.status === "available" ? "bg-green-50 text-green-600" : l.status === "reserved" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`}>{l.status}</span>
+                  </div>
                 </div>
                 <div className="text-sm text-gray-500 mb-2">{user?.role === "farmer" ? `${l.location}, ${l.region}` : `${l.farmer?.name || "Unknown"} · ${l.location}, ${l.region}`}</div>
                 {/* Farmer trust rating — stars from verified-buyer reviews */}

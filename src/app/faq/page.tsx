@@ -13,11 +13,11 @@ const CATEGORIES: Category[] = [
     items: [
       {
         q: "How do I create an account?",
-        a: <>Tap <strong>Sign Up</strong> on the homepage and choose <strong>Register as Farmer</strong> or <strong>Register as Buyer</strong>. Fill in your details, upload your Ghana Card (or passport), and submit. Verification takes 2-3 working days.</>,
+        a: <>Tap <strong>Sign Up</strong> on the homepage and choose <strong>Register as Farmer</strong> or <strong>Register as Buyer</strong>. Buyers just fill in their details and can log in immediately — no documents needed. Farmers upload their Ghana Card (or passport) for verification, which takes 2-3 working days.</>,
       },
       {
-        q: "Why do I need a Ghana Card or passport?",
-        a: <>Every member is identity-verified so buyers and farmers can trade with confidence. Your ID is stored privately — only you and the FarmLink admin can ever view it.</>,
+        q: "Why do farmers need a Ghana Card or passport?",
+        a: <>Farmers are identity-verified before they can sell — this is what protects buyers from fraud. The ID is stored privately — only the farmer and the FarmLink admin can ever view it. Buyers don't upload any ID: their phone number is verified by SMS code at login, and every payment they make is held in escrow until delivery is confirmed.</>,
       },
       {
         q: "What is the Ghana Card number format?",

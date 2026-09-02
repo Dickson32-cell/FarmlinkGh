@@ -29,6 +29,7 @@ interface Order {
 }
 
 import HeaderBanner from "@/components/headerBanner";
+import NotificationBell from "@/components/notificationBell";
 
 const statusColors: Record<string, string> = {
   pending: "bg-gray-100 text-gray-700",
@@ -47,6 +48,8 @@ export default function Orders() {
   const [payingFor, setPayingFor] = useState<string | null>(null);
   const [role, setRole] = useState<string>("");
   const router = useRouter();
+  // Order History: Active = in-flight trades; History = closed (released/refunded/cancelled)
+  const [orderTab, setOrderTab] = useState<"active" | "history">("active");
 
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
 
@@ -143,6 +146,12 @@ export default function Orders() {
 
   const isFarmer = role === "farmer";
 
+  // Order History split: closed statuses go to History, everything else stays Active
+  const closedStatuses = ["released", "refunded", "cancelled"];
+  const activeOrders = orders.filter((o) => !closedStatuses.includes(o.status));
+  const historyOrders = orders.filter((o) => closedStatuses.includes(o.status));
+  const visibleOrders = orderTab === "active" ? activeOrders : historyOrders;
+
   return (
     <div className="min-h-screen bg-[#f8faf7]">
       <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
@@ -150,18 +159,36 @@ export default function Orders() {
         <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink</div>
         <div className="flex gap-2">
           {!isFarmer && <Link href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>}
+          {!isFarmer && <Link href="/wishlist" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#7b1fa2] hover:bg-[#6a1b9a] text-white">Wishlist</Link>}
           <Link href="/prices" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#1565c0] hover:bg-[#0d47a1] text-white">Prices</Link>
+          <NotificationBell />
           <Link href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</Link>
         </div>
       </header>
 
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-2xl font-bold text-[#1b5e20] mb-1">{isFarmer ? "Orders to Deliver" : "My Orders"}</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 mb-4">
           {isFarmer
             ? "Orders buyers placed with you — delivery details included. You are SMSed the moment payment lands."
             : "Your purchases. Confirm delivery when the product arrives — you then have 3 days to request a refund."}
         </p>
+
+        {/* Active / History tabs */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setOrderTab("active")}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${orderTab === "active" ? "bg-[#1b5e20] text-white shadow-sm" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+          >
+            Active {activeOrders.length > 0 && <span className="opacity-80">({activeOrders.length})</span>}
+          </button>
+          <button
+            onClick={() => setOrderTab("history")}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${orderTab === "history" ? "bg-[#1b5e20] text-white shadow-sm" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+          >
+            Order History {historyOrders.length > 0 && <span className="opacity-80">({historyOrders.length})</span>}
+          </button>
+        </div>
 
         {paymentStatus && (
           <div className={`p-4 rounded-xl mb-6 text-sm font-semibold ${paymentStatus === "success" ? "bg-green-50 border border-green-200 text-green-800" : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
@@ -178,11 +205,19 @@ export default function Orders() {
 
         {loading && <div className="text-center text-gray-400 py-10">Loading...</div>}
 
-        {!loading && orders.length === 0 && (
+        {!loading && visibleOrders.length === 0 && (
           <div className="bg-white rounded-xl shadow border border-gray-200 p-10 text-center text-gray-400">
-            <div className="font-semibold mb-1">{isFarmer ? "No orders yet" : "No orders yet"}</div>
+            <div className="font-semibold mb-1">
+              {orderTab === "active"
+                ? isFarmer ? "No active orders" : "No active orders"
+                : "No order history yet"}
+            </div>
             <div className="text-sm">
-              {isFarmer ? "When buyers order your produce, they appear here with delivery details." : <>Browse the <Link href="/market" className="text-[#1b5e20] font-semibold">market →</Link></>}
+              {orderTab === "active"
+                ? isFarmer
+                  ? "When buyers order your produce, they appear here with delivery details."
+                  : <>Browse the <Link href="/market" className="text-[#1b5e20] font-semibold">market →</Link></>
+                : "Completed, refunded and cancelled orders appear here for your records."}
             </div>
           </div>
         )}
@@ -197,7 +232,7 @@ export default function Orders() {
         )}
 
         <div className="space-y-4">
-          {orders.map((o) => {
+          {visibleOrders.map((o) => {
             const refundWindowLeft = o.status === "delivered" && o.deliveredAt ? hoursLeft(o.deliveredAt) : null;
             return (
               <div key={o.id} className="bg-white rounded-xl shadow border border-gray-200 p-5">

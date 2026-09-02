@@ -27,6 +27,8 @@ model User {
   farmer        Farmer?
   buyer         Buyer?
   changeRequests ProfileChangeRequest[]
+  wishlist      Wishlist[]
+  notifications Notification[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -186,19 +188,47 @@ model Product {
 // accounts etc. Anyone (even not logged in) can file one; the admin gets an
 // SMS and manages them in the admin panel.
 model Report {
-  id           String   @id @default(cuid())
-  category     String   // scam | payment | fake-listing | behavior | hacked-account | other
-  message      String
-  reporterId   String?  // logged-in user's id (null = anonymous)
-  reporterName String   @default("Anonymous")
-  reporterPhone String  @default("")
-  listingUrl   String   @default("") // context: which listing it's about
-  status       String   @default("new") // new | reviewing | resolved
-  adminNote    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  category      String   @default("other") // scam | payment | fake-listing | behavior | hacked-account | other
+  message       String
+  reporterId    String?  // null = anonymous
+  reporterName  String   @default("Anonymous")
+  reporterPhone String   @default("")
+  listingUrl    String   @default("")
+  status        String   @default("new") // new | reviewing | resolved
+  adminNote     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([status, createdAt])
+}
+
+// ===== Buyer wishlist =====
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  crop      String   // denormalized so the page renders even if listing is deleted
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId]) // one wishlist row per buyer per listing
+  @@index([userId])
+}
+
+// ===== In-app notifications (buyers + farmers + admin) =====
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // order | payment | refund | system | approval | price
+  title     String
+  body      String
+  link      String   @default("") // internal path to open, e.g. /orders
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
 }
 
 // Admin-managed site content (hero image etc). Key-value store; the value
