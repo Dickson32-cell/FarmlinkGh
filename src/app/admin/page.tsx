@@ -18,6 +18,19 @@ interface Order {
 
 import HeaderBanner from "@/components/headerBanner";
 
+// headerImage setting holds a JSON array of URLs (slideshow) or a single
+// URL string (legacy) — normalize both to an array.
+function parseHeaderImages(value: unknown): string[] {
+  if (typeof value === "string" && value.trim().startsWith("[")) {
+    try {
+      const arr = JSON.parse(value);
+      if (Array.isArray(arr)) return arr.filter((v) => typeof v === "string" && v);
+    } catch { /* fall through */ }
+  }
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  return [];
+}
+
 export default function Admin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
@@ -34,7 +47,7 @@ export default function Admin() {
   const [heroImage, setHeroImage] = useState("");
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroError, setHeroError] = useState("");
-  const [headerImage, setHeaderImage] = useState("");
+  const [headerImages, setHeaderImages] = useState<string[]>([]);
   const [headerUploading, setHeaderUploading] = useState(false);
   const [headerError, setHeaderError] = useState("");
   const [changeRequests, setChangeRequests] = useState<any[]>([]);
@@ -66,7 +79,7 @@ export default function Admin() {
       setPendingUsers(Array.isArray(usersData) ? usersData : []);
       setAllUsers(Array.isArray(allUsersData) ? allUsersData : []);
       setHeroImage((heroData as any).value || "");
-      setHeaderImage((headerImageData as any).value || "");
+      setHeaderImages(parseHeaderImages((headerImageData as any).value));
       setChangeRequests(Array.isArray(changesData) ? changesData : []);
       setReports(Array.isArray(reportsData) ? reportsData : []);
       const s = {
@@ -217,23 +230,32 @@ export default function Admin() {
     setHeroImage("");
   };
 
-  const uploadHeaderImage = async (file: File) => {
+  const uploadHeaderImage = async (files: File[]) => {
+    if (files.length === 0) return;
     setHeaderUploading(true);
     setHeaderError("");
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("kind", "hero");
-      const up = await fetch("/api/upload", { method: "POST", body: fd });
-      const upData = await up.json();
-      if (!up.ok) throw new Error(upData.error || "Upload failed");
+      // upload each file sequentially, collecting URLs — avoids the stale
+      // state race of parallel uploads each reading the same headerImages
+      const urls: string[] = [];
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("kind", "hero");
+        const up = await fetch("/api/upload", { method: "POST", body: fd });
+        const upData = await up.json();
+        if (!up.ok) throw new Error(upData.error || "Upload failed");
+        urls.push(upData.url);
+      }
+      // save the whole updated slideshow in ONE settings write
+      const next = [...headerImages, ...urls];
       const save = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "headerImage", value: upData.url }),
+        body: JSON.stringify({ key: "headerImage", value: JSON.stringify(next) }),
       });
       if (!save.ok) throw new Error("Could not save setting");
-      setHeaderImage(upData.url);
+      setHeaderImages(next);
     } catch (e: any) {
       setHeaderError(e.message || "Upload failed");
     } finally {
@@ -241,14 +263,25 @@ export default function Admin() {
     }
   };
 
-  const removeHeaderImage = async () => {
-    if (!confirm("Remove the logged-in header banner? The solid green bar returns.")) return;
+  const removeHeaderImage = async (url: string) => {
+    if (!confirm("Remove this slide image? The others stay.")) return;
+    const next = headerImages.filter((u) => u !== url);
     await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "headerImage", value: "" }),
+      body: JSON.stringify({ key: "headerImage", value: JSON.stringify(next) }),
     });
-    setHeaderImage("");
+    setHeaderImages(next);
+  };
+
+  const removeHeaderImageAll = async () => {
+    if (!confirm("Remove ALL header banner images? The solid green bar returns.")) return;
+    await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "headerImage", value: "[]" }),
+    });
+    setHeaderImages([]);
   };
 
   const handleChangeRequest = async (requestId: string, action: "approve" | "reject") => {
@@ -524,26 +557,42 @@ export default function Admin() {
         <div className="bg-white rounded-xl shadow border border-gray-200 p-5 mb-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-bold text-[#1b5e20]">Logged-in Header Banner</h3>
-              <p className="text-xs text-gray-500">A landscape photo appears behind the green bar where the user&apos;s name shows after login — behind Market, Prices, Profile and My Orders</p>
+              <h3 className="font-bold text-[#1b5e20]">Logged-in Header Slideshow</h3>
+              <p className="text-xs text-gray-500">
+                {headerImages.length === 0
+                  ? "Landscape photos rotate behind the green bar where the user's name shows after login"
+                  : `${headerImages.length} slide${headerImages.length > 1 ? "s" : ""} — they crossfade behind the green bar (logo, name, Market, Prices, Profile, My Orders)`}
+              </p>
             </div>
-            {headerImage && (
-              <button onClick={removeHeaderImage} className="text-xs text-red-600 font-semibold hover:underline">Remove</button>
+            {headerImages.length > 0 && (
+              <button onClick={removeHeaderImageAll} className="text-xs text-red-600 font-semibold hover:underline shrink-0">Remove All</button>
             )}
           </div>
           {headerError && <div className="bg-red-50 text-red-600 text-xs p-2 rounded mb-3">{headerError}</div>}
-          <div className="flex items-center gap-4">
-            <div className="w-40 h-20 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50 flex items-center justify-center shrink-0">
-              {headerImage ? <img src={headerImage} alt="Header" className="w-full h-full object-cover" /> : <span className="text-gray-400 text-xs">No image</span>}
-            </div>
-            <label className={`cursor-pointer px-5 py-2.5 rounded-lg font-semibold text-sm ${headerUploading ? "bg-gray-200 text-gray-500" : "bg-[#1b5e20] text-white hover:bg-[#0d3818]"}`}>
-              {headerUploading ? "Uploading..." : headerImage ? "Replace Image" : "Upload Landscape Image"}
+          <div className="flex items-center gap-3 flex-wrap">
+            {headerImages.map((url, i) => (
+              <div key={url} className="relative w-36 h-16 rounded-lg overflow-hidden border-2 border-gray-200 group">
+                <img src={url} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                <span className="absolute top-1 left-1 bg-[#1b5e20] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">{i + 1}</span>
+                <button
+                  onClick={() => removeHeaderImage(url)}
+                  className="absolute top-1 right-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded hover:bg-red-700"
+                >✕</button>
+              </div>
+            ))}
+            <label className={`cursor-pointer px-5 py-2.5 rounded-lg font-semibold text-sm shrink-0 ${headerUploading ? "bg-gray-200 text-gray-500" : "bg-[#1b5e20] text-white hover:bg-[#0d3818]"}`}>
+              {headerUploading ? "Uploading..." : headerImages.length === 0 ? "Upload Landscape Image" : "Add Slide"}
               <input
                 type="file"
+                multiple
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 disabled={headerUploading}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHeaderImage(f); e.currentTarget.value = ""; }}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  uploadHeaderImage(files);
+                  e.currentTarget.value = "";
+                }}
               />
             </label>
           </div>

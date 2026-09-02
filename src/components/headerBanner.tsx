@@ -1,36 +1,64 @@
 "use client";
 import { useEffect, useState } from "react";
 
-// Landscape image the admin uploads — shows behind the green logged-in
-// header bar (behind the logo, user name and the colored nav buttons).
-// Falls back to the solid green bar when no image is set.
-let cached: string | null = null;
-let fetchStarted = false;
+// Slideshow of landscape images the admin uploads — crossfades behind the
+// green logged-in header bar (behind the logo, user name and colored nav
+// buttons). Falls back to the solid green bar when no images are set.
+// The setting value is a JSON array of URLs (or a single URL string, legacy).
+const SLIDE_MS = 5000;
+
+function parseImages(value: unknown): string[] {
+  if (typeof value === "string" && value.trim().startsWith("[")) {
+    try {
+      const arr = JSON.parse(value);
+      if (Array.isArray(arr)) return arr.filter((v) => typeof v === "string" && v);
+    } catch { /* fall through */ }
+  }
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  return [];
+}
 
 export default function HeaderBanner() {
-  const [img, setImg] = useState<string>(cached || "");
+  const [images, setImages] = useState<string[]>([]);
+  const [current, setCurrent] = useState(0);
+
   useEffect(() => {
-    if (fetchStarted) return;
-    fetchStarted = true;
+    let alive = true;
     fetch("/api/settings?key=headerImage")
       .then((r) => r.json())
       .then((d) => {
-        cached = (d?.value as string) || "";
-        setImg(cached);
+        if (alive) setImages(parseImages((d as any)?.value));
       })
       .catch(() => {});
+    return () => { alive = false; };
   }, []);
-  if (!img) return null;
+
+  useEffect(() => {
+    if (images.length < 2) return;
+    const t = setInterval(() => {
+      setCurrent((c) => (c + 1) % images.length);
+    }, SLIDE_MS);
+    return () => clearInterval(t);
+  }, [images]);
+
+  if (images.length === 0) return null;
+  // clamp — if slides were removed, current may point past the end
+  const active = Math.min(current, images.length - 1);
+
   return (
     <>
-      {/* -z-10 keeps the banner BEHIND the header content (logo, name,
-          buttons). Positioned elements otherwise paint OVER in-flow
-          content, hiding the nav buttons behind the photo + overlay. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-cover bg-center pointer-events-none -z-10"
-        style={{ backgroundImage: `url(${img})` }}
-      />
+      {/* Every layer is -z-10: the banner paints BEHIND the header content
+          (logo, name, buttons) but above the header's green background.
+          All slides render stacked; the visible one fades in via opacity. */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none -z-10">
+        {images.map((img, i) => (
+          <div
+            key={img}
+            className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
+            style={{ backgroundImage: `url(${img})`, opacity: i === active ? 1 : 0 }}
+          />
+        ))}
+      </div>
       <div aria-hidden className="absolute inset-0 bg-[#0d3818]/70 pointer-events-none -z-10" />
     </>
   );
