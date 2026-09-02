@@ -24,7 +24,37 @@ export async function GET(req: NextRequest) {
     include: { farmer: true },
     orderBy: { createdAt: "desc" },
   });
-  return NextResponse.json(listings);
+
+  // RELAYED-ORDER MODEL: mask the farmer's phone in listing payloads unless
+  // the viewer is a farmer (their own), an admin, or a buyer with a PAID
+  // order for that specific listing.
+  let paidListingIds = new Set<string>();
+  let isFarmerOrAdmin = false;
+  if (!session) {
+    // anonymous: mask everything
+  } else if (session.role === "farmer" || session.role === "admin") {
+    isFarmerOrAdmin = true;
+  } else if (session.role === "buyer") {
+    const paidOrders = await prisma.order.findMany({
+      where: {
+        buyerId: session.userId,
+        status: { in: ["paid", "delivered", "released"] },
+      },
+      select: { listingId: true },
+    });
+    paidListingIds = new Set(paidOrders.map((o) => o.listingId));
+  }
+
+  const masked = listings.map((l: any) => {
+    const unlocked = isFarmerOrAdmin || paidListingIds.has(l.id);
+    return {
+      ...l,
+      farmer: l.farmer ? { ...l.farmer, phone: unlocked ? l.farmer.phone : "" } : l.farmer,
+      contactUnlocked: unlocked,
+    };
+  });
+
+  return NextResponse.json(masked);
 }
 
 export async function POST(req: NextRequest) {

@@ -18,9 +18,43 @@ import { prisma } from "@/lib/prisma";
 // delivery, so triggering it (even repeatedly) can never release money early.
 
 const GRACE_HOURS = 48;
+// Rejected registrations older than this are auto-removed (their ID photos
+// deleted with them). They can always re-register fresh.
+const REJECTED_RETENTION_DAYS = 30;
 
 async function runJob() {
   const cutoff = new Date(Date.now() - GRACE_HOURS * 60 * 60 * 1000);
+  let purgedRejected = 0;
+
+  // ---- Auto-purge old rejected registrations ----
+  try {
+    const retentionCutoff = new Date(Date.now() - REJECTED_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const oldRejected = await prisma.user.findMany({
+      where: {
+        status: "rejected",
+        role: { not: "admin" },
+        createdAt: { lt: retentionCutoff },
+      },
+    });
+    for (const user of oldRejected) {
+      const farmer = await prisma.farmer.findUnique({ where: { userId: user.id } });
+      if (farmer) {
+        await prisma.review.deleteMany({ where: { farmerId: farmer.id } });
+        await prisma.listing.deleteMany({ where: { farmerId: farmer.id } });
+      }
+      await prisma.farmer.deleteMany({ where: { userId: user.id } }).catch(() => { });
+      await prisma.buyer.deleteMany({ where: { userId: user.id } }).catch(() => { });
+      await prisma.otpCode.deleteMany({ where: { phone: user.phone } });
+      await prisma.storedFile.deleteMany({ where: { ownerId: user.id } });
+      await prisma.user.delete({ where: { id: user.id } });
+      purgedRejected++;
+    }
+    if (purgedRejected > 0) {
+      console.log(`[AUTO-PURGE] removed ${purgedRejected} rejected registration(s) older than ${REJECTED_RETENTION_DAYS} days`);
+    }
+  } catch (e) {
+    console.error("[AUTO-PURGE] failed (non-fatal):", String(e).slice(0, 120));
+  }
 
   // Orders the buyer has confirmed delivered before the cutoff and not yet released
   const due = await prisma.order.findMany({
@@ -60,6 +94,7 @@ async function runJob() {
     checked: due.length,
     released,
     releasedCount: released.length,
+    purgedRejected,
     message:
       released.length > 0
         ? `${released.length} order(s) auto-released. Send MoMo payouts to the farmers listed.`

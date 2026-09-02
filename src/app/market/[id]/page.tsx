@@ -57,6 +57,7 @@ export default function ListingDetail() {
   const [buyQty, setBuyQty] = useState(1);
   const [buying, setBuying] = useState(false);
   const [orderCreated, setOrderCreated] = useState<any>(null);
+  const [contactUnlocked, setContactUnlocked] = useState(false);
 
   useEffect(() => {
     fetch(`/api/listings/${id}`)
@@ -73,6 +74,11 @@ export default function ListingDetail() {
       })
       .catch(() => setLoading(false));
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setUser(d.user || null));
+    // Is direct farmer contact unlocked for this listing? (paid order / owner / admin)
+    fetch(`/api/listings/${id}/contact`)
+      .then((r) => r.json())
+      .then((d) => setContactUnlocked(!!d.unlocked))
+      .catch(() => setContactUnlocked(false));
   }, [id]);
 
   const submitReview = async (e: React.FormEvent) => {
@@ -190,7 +196,8 @@ export default function ListingDetail() {
               </div>
             )}
 
-            {/* Farmer Contact */}
+            {/* Farmer Contact — phone hidden until the buyer PAYS for this listing
+                (relayed-order model). Farmers/admins always see it. */}
             <div className="bg-white rounded-xl shadow border-2 border-[#43a047] p-5">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-bold text-[#1b5e20]">Farmer Details</h2>
@@ -203,16 +210,33 @@ export default function ListingDetail() {
                 )}
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between"><span className="text-gray-500 text-sm">Name</span><span className="font-semibold">{listing.farmer.name}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 text-sm">Phone</span><span className="font-semibold">{listing.farmer.phone}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500 text-sm">Phone</span>
+                  {contactUnlocked ? (
+                    <span className="font-semibold">{listing.farmer.phone}</span>
+                  ) : (
+                    <span className="font-semibold text-gray-400 select-none">••• ••• •••</span>
+                  )}
+                </div>
                 <div className="flex justify-between"><span className="text-gray-500 text-sm">Town</span><span className="font-semibold">{listing.farmer.town}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500 text-sm">Region</span><span className="font-semibold">{listing.farmer.region}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500 text-sm">Farm Size</span><span className="font-semibold">{listing.farmer.farmSize} acres</span></div>
                 <div className="flex justify-between"><span className="text-gray-500 text-sm">Main Crops</span><span className="font-semibold text-right">{listing.farmer.mainCrops}</span></div>
               </div>
-              {listing.status === "available" && (
+              {contactUnlocked && listing.status === "available" && (
                 <div className="flex gap-3">
                   <a href={`https://wa.me/233${listing.farmer.phone.replace(/^0/, "")}`} target="_blank" className="flex-1 bg-green-600 text-white text-center py-3 rounded-lg font-semibold hover:bg-green-700">WhatsApp</a>
                   <a href={`tel:${listing.farmer.phone}`} className="flex-1 bg-[#1b5e20] text-white text-center py-3 rounded-lg font-semibold hover:bg-[#0d3818]">Call</a>
+                </div>
+              )}
+              {!contactUnlocked && user?.role === "buyer" && (
+                <div className="bg-[#fff3e0] border border-[#ffe0b2] rounded-lg p-3 text-sm text-[#e65100]">
+                  <strong>Order first, connect after payment.</strong> The farmer&apos;s number is released once your payment for this listing is confirmed — FarmLink relays your order to them by SMS instantly, so they are already expecting you.
+                </div>
+              )}
+              {!user && (
+                <div className="bg-[#fff3e0] border border-[#ffe0b2] rounded-lg p-3 text-sm text-[#e65100]">
+                  <strong>Log in as a buyer</strong> to order this produce. Farmer contact details are shared after payment.
                 </div>
               )}
             </div>

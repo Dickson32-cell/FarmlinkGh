@@ -63,6 +63,27 @@ export async function POST(req: NextRequest) {
           },
         });
         console.log(`Paystack webhook: order ${order.id} marked PAID (ref ${reference})`);
+
+        // RELAYED-ORDER MODEL: now that payment is secured, connect the two
+        // sides. The buyer gets the farmer's contact for delivery details;
+        // the farmer gets the buyer's contact to arrange the delivery.
+        try {
+          const { sendSms } = await import("@/lib/otp");
+          const ref = order.id.slice(-8).toUpperCase();
+          // farmer side: buyer has paid, deliver to them
+          await sendSms(
+            order.farmerPhone,
+            `FarmLink: Order ${ref} PAID - ${order.buyerName} (${order.buyerPhone}) bought ${order.quantity} bag(s) of ${order.crop} for GHS${order.totalAmount.toFixed(2)}. Contact them to arrange delivery.`,
+          );
+          // buyer side: your farmer contact for this purchase
+          await sendSms(
+            order.buyerPhone,
+            `FarmLink: Payment received for order ${ref} (${order.crop} x${order.quantity}). Your farmer: ${order.farmerName} - ${order.farmerPhone}. Contact them for delivery.`,
+          );
+          console.log(`[ORDER-RELAY] paid-order contact SMS sent to farmer ${order.farmerPhone} + buyer ${order.buyerPhone}`);
+        } catch (err) {
+          console.error("[ORDER-RELAY] paid contact SMS failed:", String(err).slice(0, 120));
+        }
       } else {
         console.error(
           `Paystack webhook amount mismatch for ${order.id}: expected ${expectedPesewas}, got ${paidPesewas} — NOT marked paid`

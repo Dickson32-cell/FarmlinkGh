@@ -22,6 +22,7 @@ export default function Market() {
   const [uploading, setUploading] = useState(false);
   const [farmerProducts, setFarmerProducts] = useState<string[]>([]);
   const [ratings, setRatings] = useState<Record<string, { avg: number; count: number }>>({});
+  const [paidContact, setPaidContact] = useState<Record<string, boolean>>({});
   const regions = ghanaRegions;
 
   useEffect(() => {
@@ -46,9 +47,21 @@ export default function Market() {
     const ids = Array.from(new Set((data as any[]).map((l: any) => l.farmer?.id).filter(Boolean))) as string[];
     if (ids.length > 0) {
       fetch(`/api/ratings?farmerIds=${ids.join(",")}`)
-        .then((rr) => rr.json())
-        .then(setRatings)
+        .then((r) => r.json())
+        .then((r: Record<string, { avg: number; count: number }>) => setRatings(r))
         .catch(() => { });
+      // batch check: which of these listings has the buyer already PAID for?
+      const listingIds = (data as any[]).map((l: any) => l.id).filter(Boolean);
+      if (listingIds.length > 0) {
+        fetch("/api/listings/contact-check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ listingIds }),
+        })
+          .then((r) => r.json())
+          .then((d) => setPaidContact(d.unlocked || {}))
+          .catch(() => { });
+      }
     }
   };
 
@@ -261,16 +274,22 @@ export default function Market() {
                 {l.notes && <div className="text-xs text-gray-400 mb-2"> {l.notes}</div>}
                 <Link href={`/market/${l.id}`} className="block text-center bg-[#1b5e20] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818] mt-2">View Details</Link>
                 {l.status === "available" && l.farmer && user?.role !== "farmer" && (
-                  <div className="bg-green-50 rounded-lg p-3 mt-2">
-                    <div className="text-xs text-gray-500">Contact Farmer:</div>
-                    <div className="font-semibold">{l.farmer.name}</div>
-                    <div className="text-lg font-bold text-[#1b5e20] my-1">{l.farmer.phone}</div>
-                    <div className="flex gap-2">
-                      <a href={`https://wa.me/233${l.farmer.phone.replace(/^0/, "")}`} target="_blank" className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">WhatsApp</a>
-                      <a href={`tel:${l.farmer.phone}`} className="bg-[#1b5e20] text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Call</a>
-                      {user && user.role !== "farmer" && <button onClick={() => reserve(l.id)} className="border-2 border-gray-200 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600">Reserve</button>}
+                  paidContact[l.id] ? (
+                    <div className="bg-green-50 rounded-lg p-3 mt-2">
+                      <div className="text-xs text-gray-500">Your Farmer (order paid):</div>
+                      <div className="font-semibold">{l.farmer.name}</div>
+                      <div className="text-lg font-bold text-[#1b5e20] my-1">{l.farmer.phone}</div>
+                      <div className="flex gap-2">
+                        <a href={`https://wa.me/233${l.farmer.phone.replace(/^0/, "")}`} target="_blank" className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">WhatsApp</a>
+                        <a href={`tel:${l.farmer.phone}`} className="bg-[#1b5e20] text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Call</a>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                      <div className="text-xs font-semibold text-amber-700 mb-0.5">Order first — farmer contact unlocks after payment</div>
+                      <div className="text-xs text-gray-500">FarmLink relays your order to the farmer by SMS the moment you order.</div>
+                    </div>
+                  )
                 )}
               </div>
             );

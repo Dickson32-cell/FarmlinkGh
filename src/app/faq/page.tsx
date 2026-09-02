@@ -92,7 +92,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: "What if I'm not satisfied with the product?",
-        a: <>In your Orders page, tap <strong>Request Refund</strong> on a paid or delivered order. The admin reviews the request and sends your money back within 2-3 days. You receive an SMS when the refund is sent.</>,
+        a: <>In your Orders page, tap <strong>Request Refund</strong> on a paid or delivered order. The admin reviews the request and sends back <strong>the full amount you paid</strong> — the 5% commission is never deducted from your refund. You receive an SMS when the refund is sent.</>,
       },
       {
         q: "Is my payment information safe?",

@@ -75,6 +75,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // RELAYED-ORDER MODEL: the farmer is notified by SMS through the system.
+    // The buyer pays FarmLink first; direct contact details are unlocked only
+    // after payment — keeping the sale (and the 5% commission) on-platform.
+    try {
+      const { sendSms } = await import("@/lib/otp");
+      const ref = order.id.slice(-8).toUpperCase();
+      await sendSms(
+        listing.farmer.phone,
+        `FarmLink: New order ${ref} - ${buyer?.name || "a buyer"} wants ${quantity} bag(s) of ${listing.crop} at GHS${listing.price}/bag (GHS${totalAmount.toFixed(2)} total). They will pay now via FarmLink.`,
+      );
+      console.log(`[ORDER-RELAY] SMS sent to farmer ${listing.farmer.phone} for order ${ref}`);
+    } catch (err) {
+      console.error("[ORDER-RELAY] farmer SMS failed (order still created):", String(err).slice(0, 120));
+    }
+
     return NextResponse.json(order);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -141,10 +156,10 @@ export async function PATCH(req: NextRequest) {
           .catch(() => { });
       }
       if (status === "refunded") {
-        // confirm to the buyer
+        // confirm to the buyer — FULL purchase amount, never minus commission
         const { sendSms } = await import("@/lib/otp");
         await sendSms(order.buyerPhone,
-          `FarmLink: Your refund of GHS${order.totalAmount.toFixed(2)} for ${order.crop} has been sent. It arrives within 24h.`)
+          `FarmLink: Your full refund of GHS${order.totalAmount.toFixed(2)} for ${order.crop} has been sent. It arrives within 24h.`)
           .catch(() => { });
         try {
           await prisma.listing.update({

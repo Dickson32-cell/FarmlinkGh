@@ -79,8 +79,8 @@ export default function Orders() {
   };
 
   const requestRefund = async (orderId: string, crop: string) => {
-    const reason = prompt(`Why are you requesting a refund for ${crop}? (optional, helps the admin review)`) ?? "";
-    if (!confirm("Request a refund? The admin will review and send your money back within 2-3 days.")) return;
+  const reason = prompt(`Why are you requesting a refund for ${crop}? (optional, helps the admin review)`) ?? "";
+  if (!confirm("Request a refund? The FULL amount you paid will be sent back to you within 2-3 days.")) return;
     await fetch("/api/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -200,17 +200,17 @@ export default function Orders() {
                   )}
                   {(o.status === "paid" || o.status === "delivered") && (
                     <button onClick={() => requestRefund(o.id, o.crop)} className="bg-red-50 border-2 border-red-200 text-red-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-100">
-                      ↩ Request Refund
+                      ↩ Request Refund (full GH₵{o.totalAmount.toFixed(2)})
                     </button>
                   )}
                   {o.status === "delivered" && (
                     <span className="text-sm text-gray-500 italic">Waiting for admin to release payment to farmer</span>
                   )}
                   {o.status === "refund_requested" && (
-                    <span className="text-sm text-amber-600 font-semibold">↩ Refund requested — admin will send your money within 2-3 days</span>
+                    <span className="text-sm text-amber-600 font-semibold">↩ Refund requested — the full GH₵{o.totalAmount.toFixed(2)} will be sent back to you within 2-3 days</span>
                   )}
                   {o.status === "refunded" && (
-                    <span className="text-sm text-[#1b5e20] font-semibold">✓ Refund sent by admin</span>
+                    <span className="text-sm text-[#1b5e20] font-semibold">✓ Full refund sent — GH₵{o.totalAmount.toFixed(2)} returned</span>
                   )}
                   {o.status === "released" && (
                     <span className="text-sm text-[#1b5e20] font-semibold">✓ Payment released to farmer</span>

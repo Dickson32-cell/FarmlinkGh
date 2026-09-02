@@ -300,6 +300,22 @@ export default function Admin() {
     loadAll();
   };
 
+  const purgeRejected = async () => {
+    if (!confirm("Remove ALL rejected registrations permanently?\n\nThey can always re-register. Their ID photos are deleted too. This cannot be undone.")) return;
+    const res = await fetch("/api/admin/users", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ purgeRejected: true }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Purge failed");
+      return;
+    }
+    const data = await res.json();
+    alert(`Removed ${data.purged} rejected registration(s).`);
+  };
+
   const handleReportStatus = async (id: string, status: string) => {
     const res = await fetch("/api/reports", {
       method: "PATCH",
@@ -678,7 +694,17 @@ export default function Admin() {
         {/* Users Tab — manage every registered account */}
         {activeTab === "users" && (
           <div>
-            <h2 className="text-lg font-bold text-[#1b5e20] mb-3">All Users</h2>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="text-lg font-bold text-[#1b5e20]">All Users</h2>
+              {allUsers.filter((u: any) => u.status === "rejected").length > 0 && (
+                <button
+                  onClick={purgeRejected}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-red-700"
+                >
+                  Remove All Rejected ({allUsers.filter((u: any) => u.status === "rejected").length})
+                </button>
+              )}
+            </div>
             {allUsers.length === 0 ? (
               <div className="bg-white rounded-xl shadow border border-gray-200 p-10 text-center text-gray-400">
                 <div className="font-semibold">No registered users yet</div>
@@ -786,8 +812,8 @@ export default function Admin() {
                       )}
                       {o.status === "refund_requested" && (
                         <>
-                          <button onClick={() => updateOrderStatus(o.id, "refunded", `Refund of GH₵${o.totalAmount.toFixed(2)} sent to ${o.buyerName}`)} className="bg-[#e65100] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#bf5000]">
-                            ↩ Send Refund to {o.buyerName} (GH₵{o.totalAmount.toFixed(2)})
+                          <button onClick={() => updateOrderStatus(o.id, "refunded", `Full refund of GH₵${o.totalAmount.toFixed(2)} sent to ${o.buyerName}`)} className="bg-[#e65100] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#bf5000]">
+                          ↩ Send FULL Refund to {o.buyerName} (GH₵{o.totalAmount.toFixed(2)})
                           </button>
                           <button onClick={() => updateOrderStatus(o.id, "delivered", "Refund request declined — buyer contacted")} className="border-2 border-gray-200 text-gray-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-50">
                             Decline Refund
