@@ -42,15 +42,31 @@ export async function POST(req: NextRequest) {
     }
 
     const buyer = await prisma.buyer.findUnique({ where: { userId: session.userId } });
-    const review = await prisma.review.create({
-      data: {
-        farmerId,
-        buyerId: session.userId,
-        buyerName: buyer?.name || "Anonymous",
-        rating: parseInt(rating),
-        comment: comment || "",
-      },
+
+    // One review per buyer-farmer pair: if the buyer already reviewed this
+    // farmer, UPDATE their review instead of creating a duplicate (stops
+    // multi-order buyers from inflating a farmer's rating).
+    const existing = await prisma.review.findFirst({
+      where: { farmerId, buyerId: session.userId },
     });
+    const review = existing
+      ? await prisma.review.update({
+          where: { id: existing.id },
+          data: {
+            rating: parseInt(rating),
+            comment: comment || "",
+            createdAt: new Date(), // bump to top of "most recent"
+          },
+        })
+      : await prisma.review.create({
+          data: {
+            farmerId,
+            buyerId: session.userId,
+            buyerName: buyer?.name || "Anonymous",
+            rating: parseInt(rating),
+            comment: comment || "",
+          },
+        });
     return NextResponse.json(review);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
