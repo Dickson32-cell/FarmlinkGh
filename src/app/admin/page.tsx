@@ -23,7 +23,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, delivered: 0, released: 0, revenue: 0 });
-  const [activeTab, setActiveTab] = useState<"verifications" | "orders" | "users" | "changes">("verifications");
+  const [activeTab, setActiveTab] = useState<"verifications" | "orders" | "users" | "changes" | "reports">("verifications");
   const [cardModal, setCardModal] = useState<string | null>(null);
   const [otpModal, setOtpModal] = useState<{ orderId: string; label: string; status?: string } | null>(null);
   const [otpCode, setOtpCode] = useState("");
@@ -33,6 +33,7 @@ export default function Admin() {
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroError, setHeroError] = useState("");
   const [changeRequests, setChangeRequests] = useState<any[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -53,12 +54,14 @@ export default function Admin() {
       fetch("/api/admin/users?status=all").then((r) => r.json()),
       fetch("/api/settings?key=heroImage").then((r) => r.json()).catch(() => ({})),
       fetch("/api/admin/changes").then((r) => r.json()).catch(() => []),
-    ]).then(([ordersData, usersData, allUsersData, heroData, changesData]) => {
+      fetch("/api/reports").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+    ]).then(([ordersData, usersData, allUsersData, heroData, changesData, reportsData]) => {
       setOrders(ordersData);
       setPendingUsers(Array.isArray(usersData) ? usersData : []);
       setAllUsers(Array.isArray(allUsersData) ? allUsersData : []);
       setHeroImage((heroData as any).value || "");
       setChangeRequests(Array.isArray(changesData) ? changesData : []);
+      setReports(Array.isArray(reportsData) ? reportsData : []);
       const s = {
         total: ordersData.length,
         pending: ordersData.filter((o: Order) => o.status === "pending").length,
@@ -223,6 +226,20 @@ export default function Admin() {
     loadAll();
   };
 
+  const handleReportStatus = async (id: string, status: string) => {
+    const res = await fetch("/api/reports", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Failed");
+      return;
+    }
+    loadAll();
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>;
   if (!user) return null;
 
@@ -313,7 +330,7 @@ export default function Admin() {
           </button>
           {changeRequests.length > 0 && (
             <button
-              onClick={() => setActiveTab("changes" as any)}
+              onClick={() => setActiveTab("changes")}
               className={`px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 ${activeTab === "changes" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-red-300 text-red-600 hover:bg-red-50"}`}
             >
               Change Requests
@@ -322,7 +339,65 @@ export default function Admin() {
               </span>
             </button>
           )}
+          <button
+            onClick={() => setActiveTab("reports")}
+            className={`px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 ${activeTab === "reports" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+          >
+            Reports
+            {reports.filter((r: any) => r.status === "new").length > 0 && (
+              <span className="rounded-full text-xs font-bold px-2 py-0.5 bg-red-500 text-white">
+                {reports.filter((r: any) => r.status === "new").length}
+              </span>
+            )}
+          </button>
         </div>
+
+        {/* Reports Tab — user complaints, scams, payment problems */}
+        {activeTab === "reports" && (
+          <div>
+            <h2 className="text-lg font-bold text-[#1b5e20] mb-3">User Reports &amp; Complaints</h2>
+            {reports.length === 0 ? (
+              <div className="bg-white rounded-xl shadow border border-gray-200 p-10 text-center text-gray-400">
+                <div className="font-semibold">No reports yet</div>
+                <div className="text-sm">Scam reports, payment complaints and other user reports appear here.</div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reports.map((r: any) => (
+                  <div key={r.id} className={`bg-white rounded-xl shadow border-2 p-5 ${r.status === "new" ? "border-amber-300" : r.status === "resolved" ? "border-green-200" : "border-gray-200"}`}>
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">{r.category}</span>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${r.status === "new" ? "bg-amber-100 text-amber-700" : r.status === "resolved" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
+                          {r.status === "new" ? "NEW" : r.status}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div className="text-sm text-gray-500 mb-2">
+                      From: <strong>{r.reporterName}</strong>{r.reporterPhone ? ` (${r.reporterPhone})` : ""}
+                      {r.listingUrl && <span> · about <a href={r.listingUrl} target="_blank" className="text-[#1b5e20] underline">a listing</a></span>}
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 mb-3 whitespace-pre-wrap">{r.message}</div>
+                    <div className="flex gap-2 flex-wrap">
+                      {r.status === "new" && (
+                        <button onClick={() => handleReportStatus(r.id, "reviewing")} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700">
+                          Mark Reviewing
+                        </button>
+                      )}
+                      {r.status !== "resolved" && (
+                        <button onClick={() => handleReportStatus(r.id, "resolved")} className="bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818]">
+                          Resolve {r.reporterPhone ? "(SMSes reporter)" : ""}
+                        </button>
+                      )}
+                      {r.status === "resolved" && <span className="text-sm text-[#1b5e20] font-semibold self-center">Resolved</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Pending name/password change requests */}
         {activeTab === "changes" && (

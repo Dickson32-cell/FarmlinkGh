@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import SiteFooter from "@/components/siteFooter";
+
 function IconLeaf() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-[#1b5e20]">
@@ -161,11 +163,7 @@ export default function Home() {
         </Link>
       </section>
 
-      <footer className="bg-[#0d3818] text-white text-center py-8 text-sm opacity-80">
-        FarmLink Ghana &copy; 2026 — Connecting farmers with buyers
-        <div className="text-xs opacity-60 mt-2">Support: 0595726252 · info.rametechconsultancy@gmail.com</div>
-        <div className="text-xs opacity-55 mt-1">framlinkgh.vercel.app</div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

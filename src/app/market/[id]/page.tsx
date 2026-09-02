@@ -191,12 +191,13 @@ export default function ListingDetail() {
             <div className="bg-white rounded-xl shadow border-2 border-[#43a047] p-5">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-bold text-[#1b5e20]">Farmer Details</h2>
+                <Link href={`/report?listing=/market/${id}`} className="text-xs text-red-500 hover:underline">Report this listing</Link>
+              </div>
                 {avgRating && (
                   <div className="text-sm text-[#e65100] font-bold">
                     <Stars rating={Math.round(parseFloat(avgRating))} /> <span className="text-gray-500 font-normal">{avgRating} ({reviews.length})</span>
                   </div>
                 )}
-              </div>
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between"><span className="text-gray-500 text-sm">Name</span><span className="font-semibold">{listing.farmer.name}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500 text-sm">Phone</span><span className="font-semibold">{listing.farmer.phone}</span></div>
