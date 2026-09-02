@@ -41,10 +41,78 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, delivered: 0, released: 0, revenue: 0 });
-  const [activeTab, setActiveTab] = useState<"verifications" | "orders" | "users" | "changes" | "reports">("verifications");
+  const [activeTab, setActiveTab] = useState<"verifications" | "orders" | "users" | "changes" | "reports" | "broadcast">("verifications");
   const [cardModal, setCardModal] = useState<string | null>(null);
   const [otpModal, setOtpModal] = useState<{ orderId: string; label: string; status?: string } | null>(null);
   const [otpCode, setOtpCode] = useState("");
+
+  // ── Broadcast SMS state ──
+  const [bcMessage, setBcMessage] = useState("");
+  const [bcAudience, setBcAudience] = useState<"all" | "buyers" | "farmers" | "region" | "crop">("all");
+  const [bcRegion, setBcRegion] = useState("");
+  const [bcCrop, setBcCrop] = useState("");
+  const [bcPreview, setBcPreview] = useState<{ all: number; buyers: number; farmers: number; regions: { region: string; count: number }[] } | null>(null);
+  const [bcLength, setBcLength] = useState({ sanitized: 0, overLimit: false, remaining: 160 });
+  const [bcSending, setBcSending] = useState(false);
+  const [bcResult, setBcResult] = useState<any>(null);
+
+  // load audience preview when the Broadcast tab opens
+  useEffect(() => {
+    if (activeTab === "broadcast" && !bcPreview) {
+      fetch("/api/admin/broadcast")
+        .then((r) => r.json())
+        .then((d) => { if (!d.error) setBcPreview(d); })
+        .catch(() => {});
+    }
+  }, [activeTab]);
+
+  // live length check while typing
+  useEffect(() => {
+    if (!bcMessage) { setBcLength({ sanitized: 0, overLimit: false, remaining: 160 }); return; }
+    const t = setTimeout(() => {
+      fetch(`/api/admin/broadcast?message=${encodeURIComponent(bcMessage)}`)
+        .then((r) => r.json())
+        .then((d) => { if (!d.error) setBcLength(d); })
+        .catch(() => {});
+    }, 250);
+    return () => clearTimeout(t);
+  }, [bcMessage]);
+
+  const bcAudienceCount = () => {
+    if (!bcPreview) return "…";
+    if (bcAudience === "all") return bcPreview.all;
+    if (bcAudience === "buyers") return bcPreview.buyers;
+    if (bcAudience === "farmers") return bcPreview.farmers;
+    if (bcAudience === "region") {
+      const r = bcPreview.regions.find((x) => x.region === bcRegion);
+      return r ? r.count : 0;
+    }
+    if (bcAudience === "crop") return "buyers looking for this crop";
+    return "…";
+  };
+
+  const sendBroadcast = async () => {
+    if (!bcMessage.trim()) { alert("Write the message first."); return; }
+    if (bcLength.overLimit) { alert("Message is too long — it must fit one SMS page (160 characters after cleanup)."); return; }
+    const count = typeof bcAudienceCount() === "number" ? bcAudienceCount() : "the matching";
+    if (!confirm(`Send this SMS to ${count} approved user(s)?\n\n"${bcMessage}"\n\nThis uses your Arkesel SMS balance. It cannot be undone.`)) return;
+    setBcSending(true);
+    setBcResult(null);
+    try {
+      const res = await fetch("/api/admin/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: bcMessage, audience: bcAudience, region: bcRegion || undefined, crop: bcCrop || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || "Broadcast failed"); return; }
+      setBcResult(data);
+      // refresh preview counts
+      fetch("/api/admin/broadcast").then((r) => r.json()).then((d) => { if (!d.error) setBcPreview(d); }).catch(() => {});
+    } finally {
+      setBcSending(false);
+    }
+  };
   const [otpError, setOtpError] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
   const [heroImage, setHeroImage] = useState("");
@@ -440,6 +508,12 @@ export default function Admin() {
             </button>
           )}
           <button
+            onClick={() => setActiveTab("broadcast")}
+            className={`px-5 py-2.5 rounded-lg font-semibold text-sm ${activeTab === "broadcast" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+          >
+            Broadcast SMS
+          </button>
+          <button
             onClick={() => setActiveTab("reports")}
             className={`px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 ${activeTab === "reports" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
           >
@@ -451,6 +525,113 @@ export default function Admin() {
             )}
           </button>
         </div>
+
+        {/* Broadcast Tab — promo/alert SMS to approved users */}
+        {activeTab === "broadcast" && (
+          <div>
+            <h2 className="text-lg font-bold text-[#1b5e20] mb-1">Broadcast / Promo SMS</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Send one SMS to a chosen audience — new listings, price drops, promos, platform news.
+              Every message is auto-prefixed "FarmLink:" and cleaned to a single SMS page (160 GSM-7 characters).
+            </p>
+
+            <div className="bg-white rounded-xl shadow border border-gray-200 p-5 mb-4">
+              {/* Audience picker */}
+              <div className="text-xs font-bold uppercase text-gray-500 mb-2">Audience</div>
+              <div className="flex gap-2 flex-wrap mb-4">
+                {([
+                  ["all", "Everyone"],
+                  ["buyers", "All Buyers"],
+                  ["farmers", "All Farmers"],
+                  ["region", "By Region"],
+                  ["crop", "By Crop (buyers looking for it)"],
+                ] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setBcAudience(key as any); setBcResult(null); }}
+                    className={`px-3 py-2 rounded-lg text-sm font-semibold ${bcAudience === key ? "bg-[#1b5e20] text-white" : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {bcAudience === "region" && (
+                <div className="mb-4">
+                  <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
+                  <select value={bcRegion} onChange={(e) => setBcRegion(e.target.value)} className="w-full md:w-80 p-2.5 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none">
+                    <option value="">Select a region…</option>
+                    {(bcPreview?.regions || []).map((r) => (
+                      <option key={r.region} value={r.region}>{r.region} ({r.count} user{r.count === 1 ? "" : "s"})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {bcAudience === "crop" && (
+                <div className="mb-4">
+                  <label className="text-xs font-semibold uppercase text-gray-500">Crop</label>
+                  <input
+                    type="text"
+                    value={bcCrop}
+                    onChange={(e) => setBcCrop(e.target.value)}
+                    placeholder="e.g. Maize — buyers whose 'Looking For' includes it"
+                    className="w-full md:w-96 p-2.5 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Recipient count */}
+              <div className="bg-[#e8f5e9] border border-[#c8e6c9] rounded-lg p-3 mb-4 text-sm">
+                <strong className="text-[#1b5e20]">{bcAudienceCount()}</strong>
+                <span className="text-gray-600"> approved user(s) will receive this SMS.</span>
+              </div>
+
+              {/* Message composer */}
+              <label className="text-xs font-bold uppercase text-gray-500">Message</label>
+              <textarea
+                value={bcMessage}
+                onChange={(e) => setBcMessage(e.target.value)}
+                rows={3}
+                maxLength={220}
+                placeholder="e.g. Fresh maize now on FarmLink from GHS 100/bag in Koforidua. Order today: framlinkgh.vercel.app"
+                className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none"
+              />
+              <div className={`text-xs mt-1 font-semibold ${bcLength.overLimit ? "text-red-600" : "text-gray-500"}`}>
+                {bcLength.overLimit
+                  ? `Over the 160-character SMS limit by ${bcLength.sanitized - 160} — shorten it (GH₵ auto-becomes GHS, emojis are stripped).`
+                  : `${bcLength.sanitized}/160 characters used (${bcLength.remaining} left after cleanup).`}
+              </div>
+
+              <div className="flex items-center gap-3 mt-4 flex-wrap">
+                <button
+                  onClick={sendBroadcast}
+                  disabled={bcSending || !bcMessage.trim() || bcLength.overLimit || (bcAudience === "region" && !bcRegion) || (bcAudience === "crop" && !bcCrop.trim())}
+                  className="bg-[#1b5e20] text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#0d3818] disabled:opacity-50"
+                >
+                  {bcSending ? "Sending..." : "Send Broadcast SMS"}
+                </button>
+                <span className="text-xs text-gray-400">Uses your Arkesel SMS balance · Cannot be undone</span>
+              </div>
+            </div>
+
+            {/* Result */}
+            {bcResult && (
+              <div className={`rounded-xl shadow border p-5 ${bcResult.failed > 0 ? "bg-amber-50 border-amber-200" : "bg-[#e8f5e9] border-[#c8e6c9]"}`}>
+                <div className="font-bold text-[#1b5e20] mb-1">
+                  Broadcast sent — {bcResult.sent} of {bcResult.total} delivered to the gateway
+                </div>
+                {bcResult.failed > 0 && (
+                  <div className="text-sm text-amber-700 mb-1">
+                    {bcResult.failed} message(s) failed. Check the Arkesel balance or the recipient numbers.
+                  </div>
+                )}
+                <div className="text-xs text-gray-500">
+                  Audience: {bcResult.audience.type}{bcResult.audience.region ? ` (${bcResult.audience.region})` : ""}{bcResult.audience.crop ? ` — crop: ${bcResult.audience.crop}` : ""}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Reports Tab — user complaints, scams, payment problems */}
         {activeTab === "reports" && (
