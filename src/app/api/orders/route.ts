@@ -12,7 +12,11 @@ export async function GET(req: NextRequest) {
 
   let where: any = {};
   if (session.role === "buyer") where.buyerId = session.userId;
-  else if (session.role === "farmer") where.farmerId = session.userId;
+  else if (session.role === "farmer") {
+    // orders store the Farmer PROFILE row id (reviews match on it)
+    const farmer = await prisma.farmer.findUnique({ where: { userId: session.userId } });
+    where.farmerId = farmer?.id || "none";
+  }
   // admin sees all (no filter)
 
   const orders = await prisma.order.findMany({
@@ -61,7 +65,7 @@ export async function POST(req: NextRequest) {
         commissionAmount,
         hubtelFeeAmount,
         farmerPayout,
-        farmerId: listing.farmer.userId,
+        farmerId: listing.farmer.id, // Farmer PROFILE row id — reviews match on this
         farmerName: listing.farmer.name,
         farmerPhone: listing.farmer.phone,
         buyerId: session.userId,
