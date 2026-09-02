@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ghanaRegions, ghanaTowns } from "@/lib/ghana-data";
 
+import HeaderBanner from "@/components/headerBanner";
+
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -129,6 +131,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-[#f8faf7]">
       <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+          <HeaderBanner />
         <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Profile</span></div>
         <div className="flex gap-2">
           {user?.role !== "farmer" && user && (<a href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">My Orders</a>)}

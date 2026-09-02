@@ -16,6 +16,8 @@ interface Order {
   status: string; adminNote: string | null; hubtelTxId: string | null; createdAt: string;
 }
 
+import HeaderBanner from "@/components/headerBanner";
+
 export default function Admin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
@@ -32,6 +34,9 @@ export default function Admin() {
   const [heroImage, setHeroImage] = useState("");
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroError, setHeroError] = useState("");
+  const [headerImage, setHeaderImage] = useState("");
+  const [headerUploading, setHeaderUploading] = useState(false);
+  const [headerError, setHeaderError] = useState("");
   const [changeRequests, setChangeRequests] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
   const router = useRouter();
@@ -53,13 +58,15 @@ export default function Admin() {
       fetch("/api/admin/users").then((r) => r.json()),
       fetch("/api/admin/users?status=all").then((r) => r.json()),
       fetch("/api/settings?key=heroImage").then((r) => r.json()).catch(() => ({})),
+      fetch("/api/settings?key=headerImage").then((r) => r.json()).catch(() => ({})),
       fetch("/api/admin/changes").then((r) => r.json()).catch(() => []),
       fetch("/api/reports").then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    ]).then(([ordersData, usersData, allUsersData, heroData, changesData, reportsData]) => {
+    ]).then(([ordersData, usersData, allUsersData, heroData, headerImageData, changesData, reportsData]) => {
       setOrders(ordersData);
       setPendingUsers(Array.isArray(usersData) ? usersData : []);
       setAllUsers(Array.isArray(allUsersData) ? allUsersData : []);
       setHeroImage((heroData as any).value || "");
+      setHeaderImage((headerImageData as any).value || "");
       setChangeRequests(Array.isArray(changesData) ? changesData : []);
       setReports(Array.isArray(reportsData) ? reportsData : []);
       const s = {
@@ -210,6 +217,40 @@ export default function Admin() {
     setHeroImage("");
   };
 
+  const uploadHeaderImage = async (file: File) => {
+    setHeaderUploading(true);
+    setHeaderError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", "hero");
+      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      const upData = await up.json();
+      if (!up.ok) throw new Error(upData.error || "Upload failed");
+      const save = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "headerImage", value: upData.url }),
+      });
+      if (!save.ok) throw new Error("Could not save setting");
+      setHeaderImage(upData.url);
+    } catch (e: any) {
+      setHeaderError(e.message || "Upload failed");
+    } finally {
+      setHeaderUploading(false);
+    }
+  };
+
+  const removeHeaderImage = async () => {
+    if (!confirm("Remove the logged-in header banner? The solid green bar returns.")) return;
+    await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "headerImage", value: "" }),
+    });
+    setHeaderImage("");
+  };
+
   const handleChangeRequest = async (requestId: string, action: "approve" | "reject") => {
     const label = action === "approve" ? "approve" : "reject";
     if (!confirm(`Are you sure you want to ${label} this change request?`)) return;
@@ -264,6 +305,7 @@ export default function Admin() {
       )}
 
       <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-40">
+          <HeaderBanner />
         <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Admin</span></div>
         <div className="flex gap-2">
           <Link href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</Link>
@@ -474,6 +516,34 @@ export default function Admin() {
                 className="hidden"
                 disabled={heroUploading}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHero(f); e.currentTarget.value = ""; }}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-5 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-bold text-[#1b5e20]">Logged-in Header Banner</h3>
+              <p className="text-xs text-gray-500">A landscape photo appears behind the green bar where the user&apos;s name shows after login — behind Market, Prices, Profile and My Orders</p>
+            </div>
+            {headerImage && (
+              <button onClick={removeHeaderImage} className="text-xs text-red-600 font-semibold hover:underline">Remove</button>
+            )}
+          </div>
+          {headerError && <div className="bg-red-50 text-red-600 text-xs p-2 rounded mb-3">{headerError}</div>}
+          <div className="flex items-center gap-4">
+            <div className="w-40 h-20 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50 flex items-center justify-center shrink-0">
+              {headerImage ? <img src={headerImage} alt="Header" className="w-full h-full object-cover" /> : <span className="text-gray-400 text-xs">No image</span>}
+            </div>
+            <label className={`cursor-pointer px-5 py-2.5 rounded-lg font-semibold text-sm ${headerUploading ? "bg-gray-200 text-gray-500" : "bg-[#1b5e20] text-white hover:bg-[#0d3818]"}`}>
+              {headerUploading ? "Uploading..." : headerImage ? "Replace Image" : "Upload Landscape Image"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                disabled={headerUploading}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHeaderImage(f); e.currentTarget.value = ""; }}
               />
             </label>
           </div>

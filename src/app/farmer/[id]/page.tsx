@@ -32,6 +32,8 @@ interface Farmer {
   reviewCount: number;
 }
 
+import HeaderBanner from "@/components/headerBanner";
+
 export default function FarmerProfile() {
   const { id } = useParams();
   const [farmer, setFarmer] = useState<Farmer | null>(null);
@@ -67,6 +69,7 @@ export default function FarmerProfile() {
   return (
     <div className="min-h-screen bg-[#f8faf7]">
       <header className="bg-[#1b5e20] text-white px-6 py-3.5 flex items-center justify-between sticky top-0 z-50 shadow-md">
+          <HeaderBanner />
         <div className="text-xl font-bold flex items-center gap-2">
           <img src="/logo.jpg" alt="FarmLink" className="w-9 h-9 rounded-full ring-2 ring-white/30" />
           FarmLink <span className="opacity-70 text-sm font-normal">Ghana</span>

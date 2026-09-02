@@ -6,6 +6,8 @@ import { PriceInput, ProductInput } from "@/components/produceInputs";
 
 interface Listing { id: string; crop: string; quantity: number; price: number; grade: string; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes?: string; farmer?: { id?: string; name: string; phone: string; }; }
 
+import HeaderBanner from "@/components/headerBanner";
+
 export default function Market() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [search, setSearch] = useState("");
@@ -109,6 +111,7 @@ export default function Market() {
   return (
     <div className="min-h-screen">
       <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+          <HeaderBanner />
         <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Market</span></div>
         <div className="flex gap-2">
           {user?.role !== "farmer" && user && (<a href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">My Orders</a>)}

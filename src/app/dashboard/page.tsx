@@ -8,6 +8,8 @@ import { PriceInput, ProductInput } from "@/components/produceInputs";
 interface User { id: string; name: string; role: string; phone: string; }
 interface Listing { id: string; crop: string; quantity: number; price: number; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes: string | null; images: string; farmer?: { name: string; phone: string; }; }
 
+import HeaderBanner from "@/components/headerBanner";
+
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
@@ -141,6 +143,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen">
       <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+          <HeaderBanner />
         <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">{user.name}</span></div>
         <div className="flex gap-2">
           {user.role !== "farmer" && <Link href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>}

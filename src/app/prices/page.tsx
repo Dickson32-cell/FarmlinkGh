@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 
 interface Price { id: string; crop: string; market: string; region: string; lowPrice: number; highPrice: number; trend: string; date: string; }
 
+import HeaderBanner from "@/components/headerBanner";
+
 export default function Prices() {
   const [prices, setPrices] = useState<Price[]>([]);
   const [search, setSearch] = useState("");
@@ -20,6 +22,7 @@ export default function Prices() {
   return (
     <div className="min-h-screen">
       <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+          <HeaderBanner />
         <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Price Board</span></div>
         <div className="flex gap-2">
           <a href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</a>
