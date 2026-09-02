@@ -153,6 +153,22 @@ export async function POST(req: NextRequest) {
     // and the whole message stays inside one GSM-7 page after sanitize.
     const body = message.startsWith("FarmLink:") ? message : `FarmLink: ${String(message).trim()}`;
 
+    // HARD LENGTH GATE — a broadcast must never go out silently truncated.
+    // (GSM-7 single page; the composer UI shows the same count live.)
+    const sanitizedPreview = body
+      .replace(/GH₵/gi, "GHS")
+      .replace(/₵/g, "GHS ")
+      .replace(/[→…–—]/g, "-")
+      .replace(/[^\x20-\x7E]/g, "")
+      .replace(/ {2,}/g, " ")
+      .trim();
+    if (sanitizedPreview.length > 160) {
+      return NextResponse.json(
+        { error: `Message is ${sanitizedPreview.length} characters after cleanup — over the 160 SMS limit by ${sanitizedPreview.length - 160}. Shorten it.` },
+        { status: 400 },
+      );
+    }
+
     const results: { phone: string; sent: boolean }[] = [];
     let smsBalance: number | null = null;
 
