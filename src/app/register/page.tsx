@@ -23,6 +23,11 @@ function RegisterForm() {
   const [policyAgreed, setPolicyAgreed] = useState(false);
   const [ghanaCardUrl, setGhanaCardUrl] = useState("");
   const [passportUrl, setPassportUrl] = useState("");
+  // Local preview of the ID photo — shown straight from the user's device.
+  // The server copy is PRIVATE (owner + admin only), so it can't be loaded
+  // back before the account exists (no session yet) — without this the
+  // preview shows a broken image.
+  const [idPreview, setIdPreview] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,6 +53,9 @@ function RegisterForm() {
     if (!file) return;
     setUploading(true);
     setError("");
+    // instant local preview from the device
+    if (idPreview) URL.revokeObjectURL(idPreview);
+    setIdPreview(URL.createObjectURL(file));
     const fd = new FormData();
     fd.append("file", file);
     fd.append("kind", idType === "ghana-card" ? "ghana-card" : "passport"); // private — owner + verified admin only
@@ -58,6 +66,8 @@ function RegisterForm() {
       else setPassportUrl(data.url);
     } else {
       setError(data.error || "Upload failed. Please try again.");
+      URL.revokeObjectURL(idPreview);
+      setIdPreview("");
     }
     setUploading(false);
     e.target.value = "";
@@ -194,12 +204,12 @@ function RegisterForm() {
               {idType === "ghana-card" ? "Ghana Card Photo (front side required)" : "Passport Photo Page (required)"}
             </label>
             <div className="mt-2">
-              {idFileUrl ? (
+              {idFileUrl && idPreview ? (
                 <div className="relative">
-                  <img src={idFileUrl} alt={idType === "ghana-card" ? "Ghana Card" : "Passport"} className="w-full h-48 object-cover rounded-xl border-2 border-[#43a047]" />
+                  <img src={idPreview} alt={idType === "ghana-card" ? "Ghana Card" : "Passport"} className="w-full h-48 object-cover rounded-xl border-2 border-[#43a047]" />
                   <button
                     type="button"
-                    onClick={() => { idType === "ghana-card" ? setGhanaCardUrl("") : setPassportUrl(""); }}
+                    onClick={() => { idType === "ghana-card" ? setGhanaCardUrl("") : setPassportUrl(""); URL.revokeObjectURL(idPreview); setIdPreview(""); }}
                     className="absolute top-2 right-2 bg-red-600 text-white w-7 h-7 rounded-full text-sm font-bold"
                   >✕</button>
                   <div className="absolute bottom-2 left-2 bg-[#1b5e20] text-white text-xs px-2 py-1 rounded-lg">✓ Uploaded</div>
