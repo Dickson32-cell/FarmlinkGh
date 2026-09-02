@@ -19,12 +19,14 @@ model User {
   idType        String    @default("ghana-card") // ghana-card | passport
   idNumber      String    @default("") // GHA-123456789-0 or passport number
   passportUrl   String    @default("") // passport photo page (when idType=passport)
+  profileImageUrl String  @default("") // user-uploaded avatar (kind=profile, public)
   twoFactorEnabled Boolean @default(true) // OTP on every login (opt-out possible)
   lastNetwork      String   @default("")   // MTN / Telecel / AT detected at registration
   failedLogins     Int      @default(0)    // consecutive failed password attempts
   lockedUntil      DateTime?              // brute-force lockout expiry
   farmer        Farmer?
   buyer         Buyer?
+  changeRequests ProfileChangeRequest[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -170,6 +172,22 @@ model SiteSetting {
   key       String   @id
   value     String   @default("")
   updatedAt DateTime @updatedAt
+}
+
+// Pending account changes (name or password) that the ADMIN must approve
+// before they take effect. Users request a change; the request sits here
+// until approved/rejected in the admin panel, then the live values update.
+model ProfileChangeRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  kind        String   // "name" | "password"
+  newName     String?  // when kind = "name"
+  newPassHash String?  // bcrypt hash, when kind = "password"
+  status      String   @default("pending") // pending | approved | rejected
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
 }
 
 // Uploaded files (Ghana Cards, listing photos).

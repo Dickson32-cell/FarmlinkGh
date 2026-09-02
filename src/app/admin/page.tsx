@@ -23,7 +23,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, delivered: 0, released: 0, revenue: 0 });
-  const [activeTab, setActiveTab] = useState<"verifications" | "orders" | "users">("verifications");
+  const [activeTab, setActiveTab] = useState<"verifications" | "orders" | "users" | "changes">("verifications");
   const [cardModal, setCardModal] = useState<string | null>(null);
   const [otpModal, setOtpModal] = useState<{ orderId: string; label: string; status?: string } | null>(null);
   const [otpCode, setOtpCode] = useState("");
@@ -32,6 +32,7 @@ export default function Admin() {
   const [heroImage, setHeroImage] = useState("");
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroError, setHeroError] = useState("");
+  const [changeRequests, setChangeRequests] = useState<any[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -51,11 +52,13 @@ export default function Admin() {
       fetch("/api/admin/users").then((r) => r.json()),
       fetch("/api/admin/users?status=all").then((r) => r.json()),
       fetch("/api/settings?key=heroImage").then((r) => r.json()).catch(() => ({})),
-    ]).then(([ordersData, usersData, allUsersData, heroData]) => {
+      fetch("/api/admin/changes").then((r) => r.json()).catch(() => []),
+    ]).then(([ordersData, usersData, allUsersData, heroData, changesData]) => {
       setOrders(ordersData);
       setPendingUsers(Array.isArray(usersData) ? usersData : []);
       setAllUsers(Array.isArray(allUsersData) ? allUsersData : []);
       setHeroImage((heroData as any).value || "");
+      setChangeRequests(Array.isArray(changesData) ? changesData : []);
       const s = {
         total: ordersData.length,
         pending: ordersData.filter((o: Order) => o.status === "pending").length,
@@ -204,6 +207,22 @@ export default function Admin() {
     setHeroImage("");
   };
 
+  const handleChangeRequest = async (requestId: string, action: "approve" | "reject") => {
+    const label = action === "approve" ? "approve" : "reject";
+    if (!confirm(`Are you sure you want to ${label} this change request?`)) return;
+    const res = await fetch("/api/admin/changes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId, action }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Action failed");
+      return;
+    }
+    loadAll();
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>;
   if (!user) return null;
 
@@ -290,9 +309,71 @@ export default function Admin() {
             onClick={() => setActiveTab("users")}
             className={`px-5 py-2.5 rounded-lg font-semibold text-sm ${activeTab === "users" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50"}`}
           >
-             Users ({allUsers.length})
+            Users ({allUsers.length})
           </button>
+          {changeRequests.length > 0 && (
+            <button
+              onClick={() => setActiveTab("changes" as any)}
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 ${activeTab === "changes" ? "bg-[#1b5e20] text-white" : "bg-white border-2 border-red-300 text-red-600 hover:bg-red-50"}`}
+            >
+              Change Requests
+              <span className="rounded-full text-xs font-bold px-2 py-0.5 bg-red-500 text-white">
+                {changeRequests.length}
+              </span>
+            </button>
+          )}
         </div>
+
+        {/* Pending name/password change requests */}
+        {activeTab === "changes" && (
+          <div>
+            <h2 className="text-lg font-bold text-[#1b5e20] mb-3">Pending Account Changes</h2>
+            {changeRequests.length === 0 ? (
+              <div className="bg-white rounded-xl shadow border border-gray-200 p-10 text-center text-gray-400">
+                <div className="font-semibold">No pending change requests</div>
+                <div className="text-sm">Name and password changes users request will appear here.</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {changeRequests.map((cr: any) => (
+                  <div key={cr.id} className="bg-white rounded-xl shadow border-2 border-amber-200 p-5">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full mr-2 ${cr.kind === "name" ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-purple-50 text-purple-700 border border-purple-200"}`}>
+                          {cr.kind === "name" ? "Name Change" : "Password Change"}
+                        </span>
+                        <span className="font-bold">{cr.user?.name}</span>
+                        <span className="text-sm text-gray-500 ml-2">{cr.user?.phone} · {cr.user?.role}</span>
+                      </div>
+                      <div className="text-xs text-gray-400">Requested {new Date(cr.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm">
+                      {cr.kind === "name" ? (
+                        <div>
+                          Current name: <strong>{cr.user?.name}</strong>
+                          <span className="mx-2 text-gray-400">→</span>
+                          New name: <strong className="text-[#1b5e20]">{cr.newName}</strong>
+                        </div>
+                      ) : (
+                        <div>New password requested (hidden for security). Approving replaces the current password.</div>
+                      )}
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleChangeRequest(cr.id, "approve")}
+                        className="flex-1 bg-[#1b5e20] text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-[#0d3818]"
+                      >Approve</button>
+                      <button
+                        onClick={() => handleChangeRequest(cr.id, "reject")}
+                        className="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-red-700"
+                      >Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Homepage Hero Image Manager */}
         <div className="bg-white rounded-xl shadow border border-gray-200 p-5 mb-6">

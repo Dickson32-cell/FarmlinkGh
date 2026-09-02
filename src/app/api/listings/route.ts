@@ -62,6 +62,50 @@ export async function POST(req: NextRequest) {
         postedDate: new Date().toISOString().slice(0, 10),
       },
     });
+
+    // ---- Price-alert SMS to interested buyers (non-fatal) ----
+    // Notify approved buyers who are "looking for" this crop when a NEW
+    // listing is either the first of its crop or cheaper than the previous
+    // lowest price. This brings buyers back to the site to purchase.
+    try {
+      const cropKey = String(body.crop || "").trim().toLowerCase();
+      if (cropKey) {
+        // previous lowest available price for this crop (excluding the new listing)
+        const existing = await prisma.listing.findMany({
+          where: { status: "available", id: { not: listing.id } },
+          select: { crop: true, price: true },
+        });
+        const sameCrop = existing.filter((l) => l.crop.trim().toLowerCase() === cropKey);
+        const prevLowest = sameCrop.length > 0 ? Math.min(...sameCrop.map((l) => l.price)) : null;
+        const isFirst = prevLowest === null;
+        const isCheaper = prevLowest !== null && listing.price < prevLowest;
+
+        if (isFirst || isCheaper) {
+          // approved buyers looking for this product
+          const buyers = await prisma.buyer.findMany({
+            where: { user: { status: "approved" } },
+            select: { lookingFor: true, name: true, user: { select: { phone: true } } },
+          });
+          const { sendSms } = await import("@/lib/otp");
+
+          for (const b of buyers) {
+            const wants = String(b.lookingFor || "").toLowerCase();
+            const matches = wants.includes(cropKey) || wants.split(/[,;\/]/).some((w) => w.trim() && cropKey.includes(w.trim()));
+            if (!matches || !b.user?.phone) continue;
+
+            const msg = isFirst
+              ? `FarmLink: ${body.crop} is now on the market - GH₵${listing.price}/bag by ${farmer.name} in ${listing.region}. Login to buy: framlinkgh.vercel.app`
+              : `FarmLink: Price drop! ${body.crop} now GH₵${listing.price}/bag (was GH₵${prevLowest}). By ${farmer.name} in ${listing.region}. Login to buy.`;
+            await sendSms(b.user.phone, msg).catch(() => { });
+            // throttle: tiny pause avoids hammering the SMS API
+            await new Promise((r) => setTimeout(r, 50));
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[PRICE-ALERT] skipped:", String(err).slice(0, 120));
+    }
+
     return NextResponse.json(listing);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

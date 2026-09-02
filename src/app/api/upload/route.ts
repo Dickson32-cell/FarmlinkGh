@@ -15,9 +15,10 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file") as File | null;
   const kindRaw = String(formData.get("kind") || "listing");
   // Private kinds: ghana-card + passport — only owner and verified admin may view.
-  // hero (homepage cover) and listing are public.
+  // hero (homepage cover), profile (avatars) and listing are public.
   const PRIVATE_KINDS = ["ghana-card", "passport"];
-  const kind = PRIVATE_KINDS.includes(kindRaw) ? kindRaw : (kindRaw === "hero" ? "hero" : "listing");
+  const PUBLIC_KINDS = ["listing", "hero", "profile"];
+  const kind = PRIVATE_KINDS.includes(kindRaw) ? kindRaw : (PUBLIC_KINDS.includes(kindRaw) ? kindRaw : "listing");
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
   // Validate file type

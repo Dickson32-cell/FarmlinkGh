@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ghanaRegions, ghanaTowns, ghanaCrops } from "@/lib/ghana-data";
 import { PriceInput, ProductInput } from "@/components/produceInputs";
 
-interface Listing { id: string; crop: string; quantity: number; price: number; grade: string; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes?: string; farmer?: { name: string; phone: string; }; }
+interface Listing { id: string; crop: string; quantity: number; price: number; grade: string; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes?: string; farmer?: { id?: string; name: string; phone: string; }; }
 
 export default function Market() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -19,6 +19,7 @@ export default function Market() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [farmerProducts, setFarmerProducts] = useState<string[]>([]);
+  const [ratings, setRatings] = useState<Record<string, { avg: number; count: number }>>({});
   const regions = ghanaRegions;
 
   useEffect(() => {
@@ -39,6 +40,14 @@ export default function Market() {
     const r = await fetch(`/api/listings?${params}`);
     const data = await r.json();
     setListings(data);
+    // fetch star ratings for the farmers behind these listings
+    const ids = Array.from(new Set((data as any[]).map((l: any) => l.farmer?.id).filter(Boolean))) as string[];
+    if (ids.length > 0) {
+      fetch(`/api/ratings?farmerIds=${ids.join(",")}`)
+        .then((rr) => rr.json())
+        .then(setRatings)
+        .catch(() => { });
+    }
   };
 
   useEffect(() => { loadListings(); }, [crop, region, status]);
@@ -218,6 +227,30 @@ export default function Market() {
                   <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${l.status === "available" ? "bg-green-50 text-green-600" : l.status === "reserved" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`}>{l.status}</span>
                 </div>
                 <div className="text-sm text-gray-500 mb-2">{user?.role === "farmer" ? `${l.location}, ${l.region}` : `${l.farmer?.name || "Unknown"} · ${l.location}, ${l.region}`}</div>
+                {/* Farmer trust rating — stars from verified-buyer reviews */}
+                {(() => {
+                  const fid = l.farmer?.id;
+                  const r = fid ? ratings[fid] : undefined;
+                  if (l.farmer && fid && r && r.count > 0) {
+                    return (
+                      <Link href={`/farmer/${fid}`} className="inline-flex items-center gap-1.5 mb-2 group">
+                        <span className="text-[#e65100]">
+                          {"★".repeat(Math.round(r.avg))}{"☆".repeat(5 - Math.round(r.avg))}
+                        </span>
+                        <span className="text-xs font-semibold text-gray-700 group-hover:text-[#1b5e20]">
+                          {r.avg.toFixed(1)} ({r.count})
+                        </span>
+                        <span className="text-xs text-[#1b5e20] font-semibold opacity-0 group-hover:opacity-100">View profile</span>
+                      </Link>
+                    );
+                  }
+                  if (l.farmer && fid && user?.role !== "farmer") {
+                    return (
+                      <Link href={`/farmer/${fid}`} className="inline-block text-xs text-gray-400 hover:text-[#1b5e20] mb-2">Farmer profile</Link>
+                    );
+                  }
+                  return null;
+                })()}
                 <div className="text-xl font-bold text-[#1b5e20] mb-2">GH₵{l.price.toLocaleString()} <span className="text-xs text-gray-400">/ bag</span></div>
                 <div className="flex gap-3 text-xs text-gray-500 flex-wrap mb-2">
                   <span>{l.quantity} bags</span><span> · {l.harvestDate}</span>
