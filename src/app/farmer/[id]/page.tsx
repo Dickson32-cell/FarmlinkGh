@@ -71,7 +71,7 @@ export default function FarmerProfile() {
           <img src="/logo.jpg" alt="FarmLink" className="w-9 h-9 rounded-full ring-2 ring-white/30" />
           FarmLink <span className="opacity-70 text-sm font-normal">Ghana</span>
         </div>
-        <Link href="/market" className="bg-white/15 px-4 py-2 rounded-lg text-sm hover:bg-white/25">Market</Link>
+        <Link href="/market" className="px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>
       </header>
 
       <div className="max-w-4xl mx-auto p-6">
