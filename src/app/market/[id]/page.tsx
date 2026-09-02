@@ -58,6 +58,12 @@ export default function ListingDetail() {
   const [buying, setBuying] = useState(false);
   const [orderCreated, setOrderCreated] = useState<any>(null);
   const [contactUnlocked, setContactUnlocked] = useState(false);
+  // Delivery location for this order (GPS + address)
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
+  const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
+  const [saveLocation, setSaveLocation] = useState(true);
+  const [gpsError, setGpsError] = useState("");
 
   useEffect(() => {
     fetch(`/api/listings/${id}`)
@@ -79,6 +85,17 @@ export default function ListingDetail() {
       .then((r) => r.json())
       .then((d) => setContactUnlocked(!!d.unlocked))
       .catch(() => setContactUnlocked(false));
+    // Prefill delivery location from the buyer's saved default
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((p) => {
+        if (p?.buyer) {
+          if (p.buyer.deliveryAddress) setDeliveryAddress(p.buyer.deliveryAddress);
+          if (typeof p.buyer.deliveryLat === "number") setDeliveryLat(p.buyer.deliveryLat);
+          if (typeof p.buyer.deliveryLng === "number") setDeliveryLng(p.buyer.deliveryLng);
+        }
+      })
+      .catch(() => { });
   }, [id]);
 
   const submitReview = async (e: React.FormEvent) => {
@@ -97,11 +114,18 @@ export default function ListingDetail() {
 
   const buyNow = async () => {
     setBuying(true);
-    // Create order
+    // Create order — with the delivery location for the farmer
     const res = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listingId: listing!.id, quantity: buyQty }),
+      body: JSON.stringify({
+        listingId: listing!.id,
+        quantity: buyQty,
+        deliveryAddress,
+        deliveryLat,
+        deliveryLng,
+        saveLocation,
+      }),
     });
     const order = await res.json();
     if (res.ok) {
@@ -120,6 +144,28 @@ export default function ListingDetail() {
       setOrderCreated({ order, payData });
     }
     setBuying(false);
+  };
+
+  const captureGps = () => {
+    setGpsError("");
+    if (!navigator.geolocation) {
+      setGpsError("GPS is not supported on this device");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setDeliveryLat(pos.coords.latitude);
+        setDeliveryLng(pos.coords.longitude);
+      },
+      (err) => {
+        setGpsError(
+          err.code === err.PERMISSION_DENIED
+            ? "Allow location access in your browser to use GPS"
+            : "Could not get your location. Type the address instead."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>;
@@ -270,16 +316,46 @@ export default function ListingDetail() {
                       <input type="number" min={1} max={listing.quantity} value={buyQty} onChange={(e) => setBuyQty(Math.min(Math.max(1, parseInt(e.target.value) || 1), listing.quantity))} className="w-24 p-2 border-2 border-gray-200 rounded-lg outline-none focus:border-[#43a047]" />
                       <span className="text-sm text-gray-500">of {listing.quantity} available</span>
                     </div>
+                    {/* Delivery location — the farmer delivers here */}
+                    <div className="bg-[#f6fbf6] border border-[#c8e6c9] rounded-lg p-3 space-y-2">
+                      <div className="text-xs font-bold uppercase text-[#1b5e20]">Delivery Location</div>
+                      <textarea
+                        value={deliveryAddress}
+                        onChange={(e) => setDeliveryAddress(e.target.value)}
+                        rows={2}
+                        maxLength={300}
+                        placeholder="Landmark / house / street — e.g. House 12, near Koforidua Polyclinic"
+                        className="w-full p-2 border-2 border-gray-200 rounded-lg outline-none focus:border-[#43a047] text-sm"
+                      />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={captureGps}
+                          className="bg-[#1565c0] text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#0d47a1]"
+                        >
+                          {deliveryLat ? `GPS ✓ ${deliveryLat.toFixed(4)}, ${deliveryLng?.toFixed(4)}` : "Use My GPS Location"}
+                        </button>
+                        {deliveryLat && (
+                          <button type="button" onClick={() => { setDeliveryLat(null); setDeliveryLng(null); }} className="text-xs text-gray-500 hover:underline">clear GPS</button>
+                        )}
+                      </div>
+                      {gpsError && <div className="text-xs text-red-500">{gpsError}</div>}
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input type="checkbox" checked={saveLocation} onChange={(e) => setSaveLocation(e.target.checked)} className="accent-[#1b5e20]" />
+                        Save as my default delivery location
+                      </label>
+                    </div>
                     <div className="text-sm bg-gray-50 rounded-lg p-3 space-y-1">
                       <div className="flex justify-between"><span>Total:</span><strong>GH₵{(listing.price * buyQty).toLocaleString()}</strong></div>
-                      <div className="flex justify-between text-xs text-gray-500"><span>Farmer gets (88.5%):</span><span>GH₵{(listing.price * buyQty * 0.885).toFixed(2)}</span></div>
-                      <div className="flex justify-between text-xs text-gray-500"><span>Admin (10%):</span><span>GH₵{(listing.price * buyQty * 0.10).toFixed(2)}</span></div>
-                      <div className="flex justify-between text-xs text-gray-500"><span>Hubtel (1.5%):</span><span>GH₵{(listing.price * buyQty * 0.015).toFixed(2)}</span></div>
+                      <div className="flex justify-between text-xs text-gray-500"><span>Platform fee (5%):</span><span>GH₵{(listing.price * buyQty * 0.05).toFixed(2)}</span></div>
+                      <div className="flex justify-between text-xs text-gray-500"><span>Payment processor (1.5%):</span><span>GH₵{(listing.price * buyQty * 0.015).toFixed(2)}</span></div>
+                      <div className="flex justify-between text-xs text-gray-500"><span>Farmer receives:</span><span>GH₵{(listing.price * buyQty * 0.935).toFixed(2)}</span></div>
                     </div>
                     <button onClick={buyNow} disabled={buying} className="w-full bg-[#e65100] text-white py-3 rounded-lg font-bold hover:bg-[#ff6f00] disabled:opacity-50">
                       {buying ? "Creating Order..." : `Buy Now — GH₵${(listing.price * buyQty).toLocaleString()}`}
                     </button>
                     <p className="text-xs text-gray-400 text-center">Payment goes to Admin (escrow). Farmer is paid after you confirm delivery.</p>
+                    <p className="text-xs text-gray-400 text-center">After confirming delivery you have 3 days to request a refund if the product falls short.</p>
                   </div>
                 )}
               </div>

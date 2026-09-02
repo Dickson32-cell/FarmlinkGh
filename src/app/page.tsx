@@ -42,6 +42,14 @@ export default function Home() {
       .then((r) => r.json())
       .then((d) => setHero(d.value || ""))
       .catch(() => { });
+    // Auto-refresh: keep counts + hero current without a manual reload
+    const statsTimer = setInterval(() => {
+      fetch("/api/stats").then((r) => r.json()).then(setStats).catch(() => { });
+    }, 30000);
+    const heroTimer = setInterval(() => {
+      fetch("/api/settings?key=heroImage").then((r) => r.json()).then((d) => setHero(d.value || "")).catch(() => { });
+    }, 60000);
+    return () => { clearInterval(statsTimer); clearInterval(heroTimer); };
   }, []);
 
   return (

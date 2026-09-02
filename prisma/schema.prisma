@@ -57,6 +57,10 @@ model Buyer {
   region       String   @default("")
   location     String
   lookingFor   String
+  // Default delivery location for checkout (GPS + address)
+  deliveryAddress String @default("")
+  deliveryLat   Float?
+  deliveryLng   Float?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -135,6 +139,18 @@ model Order {
   refundRequestedAt DateTime? // when buyer requested a refund
   refundedAt      DateTime? // when admin sent the refund (2-3 day window)
   autoReleased    Boolean   @default(false) // set when 48h auto-release cron fires
+
+  // ---- Delivery location (buyer GPS at checkout) ----
+  deliveryAddress String? // free-text landmark/address
+  deliveryLat     Float?   // GPS latitude
+  deliveryLng     Float?   // GPS longitude
+
+  // ---- Refund case (2-3 day window after delivery confirmation) ----
+  refundReason      String?   // buyer's stated reason
+  refundAmount      Float?    // what the buyer actually receives (damage-adjusted)
+  farmerComplaint   String?   // farmer's claim of buyer-side damage
+  farmerComplaintAt DateTime? // when the farmer filed it
+  damageDeduction   Float?    // amount subtracted for measured damage
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

@@ -90,6 +90,8 @@ export async function DELETE(req: NextRequest) {
         });
         let removed = 0;
         for (const user of rejected) {
+            // change requests FK-block user deletion — clear them first
+            await prisma.profileChangeRequest.deleteMany({ where: { userId: user.id } }).catch(() => { });
             const farmer = await prisma.farmer.findUnique({ where: { userId: user.id } });
             if (farmer) {
                 await prisma.review.deleteMany({ where: { farmerId: farmer.id } });
@@ -129,6 +131,8 @@ export async function DELETE(req: NextRequest) {
     // Clean up every dependent row so FK constraints don't block the delete.
     // Orders keep their denormalized names/phones (no FK) — sales history
     // survives for the audit trail, which matters for money accounting.
+    // Change requests carry an FK to User — they MUST be cleared first.
+    await prisma.profileChangeRequest.deleteMany({ where: { userId } }).catch(() => { });
     const farmer = await prisma.farmer.findUnique({ where: { userId } });
     if (farmer) {
         await prisma.review.deleteMany({ where: { farmerId: farmer.id } });

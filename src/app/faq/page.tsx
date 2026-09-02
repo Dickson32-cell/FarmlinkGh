@@ -79,7 +79,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: "Why should I confirm delivery?",
-        a: <>Confirming delivery releases the farmer&apos;s payment — it is the escrow that protects both sides. If you don&apos;t confirm within 48 hours of receiving the goods, the payment is released automatically.</>,
+        a: <>Confirming delivery starts your <strong>3-day refund window</strong> — inspect the produce, and if it falls short request a refund in that time. After 3 days without a claim the sale is final and the farmer is paid. Confirming honestly is what keeps farmers delivering good produce.</>,
       },
     ],
   },
@@ -92,7 +92,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: "What if I'm not satisfied with the product?",
-        a: <>In your Orders page, tap <strong>Request Refund</strong> on a paid or delivered order. The admin reviews the request and sends back <strong>the full amount you paid</strong> — the 5% commission is never deducted from your refund. You receive an SMS when the refund is sent.</>,
+        a: <>In your Orders page, tap <strong>Request Refund</strong>. After you confirm delivery you have <strong>3 days</strong> to request a refund — after that the sale is final and the farmer is paid. The admin reviews each case within 2-3 days and sends back <strong>the full amount you paid</strong> — the 5% commission is never deducted from your refund. <strong>If the farmer files a damage complaint</strong> (for example, goods you returned torn or spoiled after they left the farmer in good condition), the admin measures the damage and that value is <strong>subtracted from the refund</strong>. You receive an SMS stating the exact amount sent.</>,
       },
       {
         q: "Is my payment information safe?",

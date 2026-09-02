@@ -57,6 +57,9 @@ export default function Profile() {
         farmSize: profile.farmSize, mainCrops: profile.mainCrops,
         businessType: profile.businessType, location: profile.location,
         lookingFor: profile.lookingFor,
+        deliveryAddress: profile.deliveryAddress,
+        deliveryLat: typeof profile.deliveryLat === "number" ? profile.deliveryLat : undefined,
+        deliveryLng: typeof profile.deliveryLng === "number" ? profile.deliveryLng : undefined,
       }),
     });
     setSaving(false);
@@ -281,6 +284,39 @@ export default function Profile() {
                   <label className="text-xs font-semibold uppercase text-gray-500">Looking For (crops)</label>
                   <input type="text" value={profile.lookingFor || ""} onChange={(e) => setProfile({ ...profile, lookingFor: e.target.value })} placeholder="e.g. Tomatoes, Pepper, Maize" className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" />
                   <p className="text-xs text-gray-400 mt-1">We SMS you when these crops are newly listed or get cheaper.</p>
+                </div>
+              </div>
+
+              {/* Default delivery location — prefilled at every checkout */}
+              <div className="bg-[#f6fbf6] border border-[#c8e6c9] rounded-lg p-4 space-y-2">
+                <div className="text-xs font-bold uppercase text-[#1b5e20]">Default Delivery Location</div>
+                <p className="text-xs text-gray-500">Farmers deliver here. You can still change it per order at checkout.</p>
+                <textarea
+                  value={profile.deliveryAddress || ""}
+                  onChange={(e) => setProfile({ ...profile, deliveryAddress: e.target.value })}
+                  rows={2}
+                  maxLength={300}
+                  placeholder="Landmark / house / street — e.g. House 12, near Koforidua Polyclinic"
+                  className="w-full p-2.5 border-2 border-gray-200 rounded-lg outline-none focus:border-[#43a047] text-sm"
+                />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!navigator.geolocation) { alert("GPS is not supported on this device"); return; }
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => setProfile({ ...profile, deliveryLat: pos.coords.latitude, deliveryLng: pos.coords.longitude }),
+                        () => alert("Could not get your location. Check location permission."),
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+                      );
+                    }}
+                    className="bg-[#1565c0] text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#0d47a1]"
+                  >
+                    {typeof profile.deliveryLat === "number" ? `GPS ✓ ${profile.deliveryLat.toFixed(4)}, ${profile.deliveryLng?.toFixed(4)}` : "Use My GPS Location"}
+                  </button>
+                  {typeof profile.deliveryLat === "number" && (
+                    <button type="button" onClick={() => setProfile({ ...profile, deliveryLat: undefined, deliveryLng: undefined })} className="text-xs text-gray-500 hover:underline">clear GPS</button>
+                  )}
                 </div>
               </div>
             </div>

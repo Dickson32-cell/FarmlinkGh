@@ -11,20 +11,41 @@ interface Order {
   totalAmount: number;
   commissionAmount: number;
   farmerPayout: number;
+  refundAmount?: number | null;
+  damageDeduction?: number | null;
   farmerName: string;
   farmerPhone: string;
+  buyerName: string;
+  buyerPhone: string;
   status: string;
   adminNote: string | null;
+  refundReason?: string | null;
+  farmerComplaint?: string | null;
+  deliveryAddress?: string | null;
+  deliveryLat?: number | null;
+  deliveryLng?: number | null;
+  deliveredAt?: string | null;
   createdAt: string;
 }
 
 import HeaderBanner from "@/components/headerBanner";
+
+const statusColors: Record<string, string> = {
+  pending: "bg-gray-100 text-gray-700",
+  paid: "bg-blue-50 text-blue-700",
+  delivered: "bg-indigo-50 text-indigo-700",
+  released: "bg-[#e8f5e9] text-[#1b5e20]",
+  cancelled: "bg-red-50 text-red-500",
+  refund_requested: "bg-amber-50 text-amber-700",
+  refunded: "bg-[#e8f5e9] text-[#1b5e20]",
+};
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
   const [payingFor, setPayingFor] = useState<string | null>(null);
+  const [role, setRole] = useState<string>("");
   const router = useRouter();
 
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
@@ -42,7 +63,10 @@ export default function Orders() {
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
       if (!d.user) { router.push("/login"); return; }
-      if (d.user.role !== "buyer") { router.push("/dashboard"); return; }
+      // BOTH buyers and farmers use this page — buyers see their purchases,
+      // farmers see the orders they must deliver.
+      if (d.user.role !== "buyer" && d.user.role !== "farmer") { router.push("/dashboard"); return; }
+      setRole(d.user.role);
       loadOrders();
     });
   }, [router]);
@@ -69,7 +93,7 @@ export default function Orders() {
   };
 
   const confirmDelivery = async (orderId: string) => {
-    if (!confirm("Confirm you have received the product? This will notify the admin to release payment to the farmer.")) return;
+    if (!confirm("Confirm you have received the product?\n\nYou then have 3 DAYS to request a refund if the product falls short — after that the farmer is paid.")) return;
     await fetch("/api/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -79,150 +103,219 @@ export default function Orders() {
   };
 
   const requestRefund = async (orderId: string, crop: string) => {
-  const reason = prompt(`Why are you requesting a refund for ${crop}? (optional, helps the admin review)`) ?? "";
-  if (!confirm("Request a refund? The FULL amount you paid will be sent back to you within 2-3 days.")) return;
-    await fetch("/api/orders", {
+    const reason = prompt(`Why are you requesting a refund for ${crop}?\n(optional, helps the admin review)`) ?? "";
+    if (!confirm("Request a refund?\n\nThe FULL amount you paid is sent back within 2-3 days — unless the farmer files a damage complaint, in which case the admin measures the damage and it may be subtracted from the refund.")) return;
+    const res = await fetch("/api/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: orderId, status: "refund_requested" }),
+      body: JSON.stringify({ id: orderId, status: "refund_requested", reason }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Could not request refund");
+      return;
+    }
     loadOrders();
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>;
-
-  const statusColors: any = {
-    pending: "bg-amber-50 text-amber-600",
-    paid: "bg-blue-50 text-blue-600",
-    delivered: "bg-green-50 text-green-600",
-    released: "bg-[#1b5e20] text-white",
-    cancelled: "bg-red-50 text-red-600",
-    refund_requested: "bg-amber-50 text-amber-700",
-    refunded: "bg-[#e8f5e9] text-[#1b5e20]",
+  const fileComplaint = async (orderId: string, crop: string) => {
+    const complaint = prompt(`Describe the damage or issue with the returned ${crop}:\n(e.g. "3 out of 10 bags were torn open and spilled")`) ?? "";
+    if (!complaint.trim()) { alert("Please describe the damage so the admin can assess it."); return; }
+    if (!confirm("File this complaint?\n\nThe admin reviews the damage against the buyer's refund and subtracts the measured amount.")) return;
+    const res = await fetch("/api/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: orderId, status: "farmer_complaint", complaint }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Could not file complaint");
+      return;
+    }
+    loadOrders();
   };
 
+  const hoursLeft = (deliveredAt: string | null) => {
+    if (!deliveredAt) return null;
+    const elapsed = (Date.now() - new Date(deliveredAt).getTime()) / (1000 * 60 * 60);
+    return Math.max(0, Math.round(72 - elapsed));
+  };
+
+  const isFarmer = role === "farmer";
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#f8faf7]">
       <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <HeaderBanner />
-        <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">My Orders</span></div>
+        <HeaderBanner />
+        <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink</div>
         <div className="flex gap-2">
-          <Link href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>
+          {!isFarmer && <Link href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>}
           <Link href="/prices" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#1565c0] hover:bg-[#0d47a1] text-white">Prices</Link>
           <Link href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</Link>
-          <button onClick={() => { fetch("/api/auth/logout", { method: "POST" }).then(() => router.push("/")); }} className="bg-red-600/70 px-3 py-1.5 rounded-lg text-sm hover:bg-red-600">Logout</button>
         </div>
       </header>
 
       <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-2xl font-bold text-[#1b5e20] mb-1">{isFarmer ? "Orders to Deliver" : "My Orders"}</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          {isFarmer
+            ? "Orders buyers placed with you — delivery details included. You are SMSed the moment payment lands."
+            : "Your purchases. Confirm delivery when the product arrives — you then have 3 days to request a refund."}
+        </p>
+
         {paymentStatus && (
-          <div className={`rounded-xl p-4 mb-6 text-sm font-semibold ${
-            paymentStatus === "success" ? "bg-[#e8f5e9] text-[#1b5e20] border border-[#43a047]" :
-            paymentStatus === "failed" ? "bg-red-50 text-red-600 border border-red-200" :
-            paymentStatus === "amount_mismatch" ? "bg-red-50 text-red-700 border border-red-300" :
-            "bg-amber-50 text-amber-700 border border-amber-200"
-          }`}>
-            {paymentStatus === "success" && " Payment confirmed! The admin has been notified to release payment to the farmer."}
-            {paymentStatus === "failed" && " Payment was not completed. You can try paying again below."}
-            {paymentStatus === "amount_mismatch" && " Payment amount did not match the order. Contact support — do not retry payment."}
-            {paymentStatus === "already" && "ℹ️ This order was already processed."}
-            {paymentStatus === "notfound" && " Order not found for this payment reference."}
-            {paymentStatus === "error" && " Something went wrong verifying your payment. If you were debited, contact support with your Paystack receipt."}
-            {paymentStatus === "amount_mismatch" && ""}
+          <div className={`p-4 rounded-xl mb-6 text-sm font-semibold ${paymentStatus === "success" ? "bg-green-50 border border-green-200 text-green-800" : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
+            {paymentStatus === "success" && "Payment successful! Your farmer has been SMSed to start delivery."}
+            {paymentStatus === "already" && "This payment was already processed."}
+            {paymentStatus === "failed" && "Payment failed or was cancelled. Try again from this page."}
+            {paymentStatus === "amount_mismatch" && "Payment amount did not match the order. Contact support 0595726252."}
+            {paymentStatus === "missing_reference" && "Payment reference missing. If you paid, contact support 0595726252."}
+            {paymentStatus === "unconfigured" && "Online payment is not configured — pay via MoMo to the admin number."}
+            {paymentStatus === "notfound" && "Order not found."}
+            {paymentStatus === "error" && "Something went wrong verifying the payment. Contact support 0595726252."}
           </div>
         )}
-        <h1 className="text-2xl font-bold text-[#1b5e20] mb-6">My Orders</h1>
+
+        {loading && <div className="text-center text-gray-400 py-10">Loading...</div>}
+
+        {!loading && orders.length === 0 && (
+          <div className="bg-white rounded-xl shadow border border-gray-200 p-10 text-center text-gray-400">
+            <div className="font-semibold mb-1">{isFarmer ? "No orders yet" : "No orders yet"}</div>
+            <div className="text-sm">
+              {isFarmer ? "When buyers order your produce, they appear here with delivery details." : <>Browse the <Link href="/market" className="text-[#1b5e20] font-semibold">market →</Link></>}
+            </div>
+          </div>
+        )}
 
         {paymentInfo && (
-          <div className="bg-[#e8f5e9] border border-[#43a047] rounded-xl p-5 mb-6">
-            <h2 className="font-bold text-[#1b5e20] mb-2">Payment Instructions</h2>
-            {paymentInfo.mode === "manual" ? (
-              <div className="space-y-2 text-sm">
-                <p>Send <strong>GH₵{paymentInfo.amount}</strong> via MoMo to:</p>
-                <p className="text-2xl font-bold text-[#1b5e20]"> {paymentInfo.adminMomo}</p>
-                <p>Reference: <strong>{paymentInfo.reference}</strong></p>
-                <p className="text-gray-600">After sending, the admin will confirm receipt. Then you'll be notified to confirm delivery.</p>
-              </div>
-            ) : (
-              <div className="space-y-2 text-sm">
-                <p>{paymentInfo.message}</p>
-                <p className="text-gray-600">Transaction ID: {paymentInfo.hubtelData?.TransactionId || "Processing..."}</p>
-              </div>
-            )}
-            <button onClick={() => setPaymentInfo(null)} className="mt-3 bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm">Got it</button>
+          <div className="bg-[#e8f5e9] rounded-xl p-5 mb-6 border border-[#c8e6c9]">
+            <p className="text-sm font-semibold mb-1">Pay via MoMo (manual mode):</p>
+            <p className="text-2xl font-bold text-[#1b5e20]">{paymentInfo.adminMomo}</p>
+            <p className="text-sm">Amount: <strong>GH₵{paymentInfo.amount}</strong> · Reference: <strong>{paymentInfo.reference}</strong></p>
+            <p className="text-xs text-gray-500 mt-1">After paying, the admin confirms receipt — then your order is marked paid and the farmer starts delivery.</p>
           </div>
         )}
 
-        {orders.length === 0 ? (
-          <div className="bg-white rounded-xl shadow border border-gray-200 p-8 text-center text-gray-400">
-            No orders yet. <Link href="/market" className="text-[#1b5e20] font-semibold">Browse market →</Link>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {orders.map((o) => (
+        <div className="space-y-4">
+          {orders.map((o) => {
+            const refundWindowLeft = o.status === "delivered" && o.deliveredAt ? hoursLeft(o.deliveredAt) : null;
+            return (
               <div key={o.id} className="bg-white rounded-xl shadow border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <span className="font-bold text-lg">{o.crop}</span>
-                    <span className={`ml-3 px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[o.status] || "bg-gray-50 text-gray-600"}`}>{o.status}</span>
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-[#1b5e20]">{o.crop} × {o.quantity}</span>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusColors[o.status] || "bg-gray-100 text-gray-600"}`}>{o.status.replace("_", " ")}</span>
+                    {isFarmer && o.status === "paid" && <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700">PAID — DELIVER NOW</span>}
                   </div>
-                  <span className="text-xs text-gray-400">{new Date(o.createdAt).toLocaleDateString()}</span>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3">
-                  <div><span className="text-gray-500">Quantity:</span> <strong>{o.quantity} bags</strong></div>
-                  <div><span className="text-gray-500">Unit Price:</span> <strong>GH₵{o.unitPrice.toLocaleString()}</strong></div>
-                  <div><span className="text-gray-500">Total:</span> <strong className="text-[#e65100]">GH₵{o.totalAmount.toLocaleString()}</strong></div>
-                  <div><span className="text-gray-500">Farmer:</span> <strong>{o.farmerName}</strong></div>
+                  <div className="text-xs text-gray-400">Order {o.id.slice(-8).toUpperCase()} · {new Date(o.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
                 </div>
 
-                {/* Payment breakdown */}
-                <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 mb-3 grid grid-cols-3 gap-2">
-                  <div>Farmer gets: <strong className="text-[#1b5e20]">GH₵{o.farmerPayout.toFixed(2)}</strong></div>
-                  <div>Platform fee (5%): <strong>GH₵{o.commissionAmount.toFixed(2)}</strong></div>
-                  <div>Payment fee: <strong>GH₵{(o.totalAmount - o.farmerPayout - o.commissionAmount).toFixed(2)}</strong></div>
+                <div className="grid md:grid-cols-2 gap-3 text-sm mb-3">
+                  <div className="space-y-1">
+                    <div className="text-xs font-bold uppercase text-gray-400">{isFarmer ? "Buyer" : "Farmer"}</div>
+                    <div>{isFarmer ? o.buyerName : o.farmerName} · {isFarmer ? o.buyerPhone : o.farmerPhone}</div>
+                    {!isFarmer && <div className="text-xs text-gray-400">Contact details unlocked after payment</div>}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs font-bold uppercase text-gray-400">Money</div>
+                    <div className="flex justify-between"><span className="text-gray-500">Total</span><span className="font-semibold">GH₵{o.totalAmount.toFixed(2)}</span></div>
+                    {isFarmer && <div className="flex justify-between text-xs text-gray-500"><span>Your payout</span><span>GH₵{o.farmerPayout.toFixed(2)}</span></div>}
+                    {!isFarmer && o.status === "refunded" && (
+                      <>
+                        <div className="flex justify-between text-xs"><span className="text-gray-500">Refund sent</span><span className="font-semibold text-[#1b5e20]">GH₵{(o.refundAmount ?? o.totalAmount).toFixed(2)}</span></div>
+                        {(o.damageDeduction ?? 0) > 0 && <div className="flex justify-between text-xs text-amber-600"><span>Damage deduction</span><span>-GH₵{(o.damageDeduction ?? 0).toFixed(2)}</span></div>}
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                {o.adminNote && (
-                  <div className="bg-amber-50 rounded-lg p-2 text-xs text-amber-700 mb-3">Admin: {o.adminNote}</div>
+                {/* Delivery location — the farmer's roadmap */}
+                {isFarmer && (o.deliveryAddress || (o.deliveryLat && o.deliveryLng)) && (
+                  <div className="bg-[#f6fbf6] border border-[#c8e6c9] rounded-lg p-3 mb-3 text-sm">
+                    <div className="text-xs font-bold uppercase text-[#1b5e20] mb-1">Deliver To</div>
+                    {o.deliveryAddress && <div className="text-gray-700">{o.deliveryAddress}</div>}
+                    {o.deliveryLat && o.deliveryLng && (
+                      <a
+                        href={`https://maps.google.com/?q=${o.deliveryLat},${o.deliveryLng}`}
+                        target="_blank"
+                        className="inline-block mt-1 bg-[#1565c0] text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#0d47a1]"
+                      >
+                        Open in Google Maps →
+                      </a>
+                    )}
+                  </div>
                 )}
 
-                {/* Action buttons based on status */}
-                <div className="flex gap-2">
-                  {o.status === "pending" && (
+                {/* Refund case details */}
+                {o.status === "refund_requested" && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-sm">
+                    <div className="font-semibold text-amber-700 mb-1">Refund case under review</div>
+                    {o.refundReason && <div className="text-xs text-gray-600 mb-1">Buyer's reason: {o.refundReason}</div>}
+                    {o.farmerComplaint && <div className="text-xs text-red-600">Farmer's complaint: {o.farmerComplaint}</div>}
+                    {isFarmer && !o.farmerComplaint && (
+                      <button onClick={() => fileComplaint(o.id, o.crop)} className="mt-2 bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-red-700">
+                        File damage complaint
+                      </button>
+                    )}
+                  </div>
+                )}
+                {o.status === "refunded" && o.farmerComplaint && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 text-xs text-gray-600">
+                    Your complaint was reviewed: {o.farmerComplaint}
+                  </div>
+                )}
+
+                {/* Buyer action buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  {!isFarmer && o.status === "pending" && (
                     <button onClick={() => initiatePayment(o.id)} disabled={payingFor === o.id} className="bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818] disabled:opacity-50">
                       {payingFor === o.id ? "Initiating..." : "Pay Now"}
                     </button>
                   )}
-                  {o.status === "paid" && (
+                  {!isFarmer && o.status === "paid" && (
                     <button onClick={() => confirmDelivery(o.id)} className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-green-700">
                       ✓ Confirm Delivery
                     </button>
                   )}
-                  {(o.status === "paid" || o.status === "delivered") && (
+                  {!isFarmer && (o.status === "paid" || o.status === "delivered") && (
                     <button onClick={() => requestRefund(o.id, o.crop)} className="bg-red-50 border-2 border-red-200 text-red-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-red-100">
                       ↩ Request Refund (full GH₵{o.totalAmount.toFixed(2)})
                     </button>
                   )}
-                  {o.status === "delivered" && (
-                    <span className="text-sm text-gray-500 italic">Waiting for admin to release payment to farmer</span>
+                  {!isFarmer && refundWindowLeft !== null && refundWindowLeft > 0 && (
+                    <span className="text-xs text-amber-600 font-semibold self-center">
+                      {refundWindowLeft}h left in your 3-day refund window
+                    </span>
                   )}
-                  {o.status === "refund_requested" && (
-                    <span className="text-sm text-amber-600 font-semibold">↩ Refund requested — the full GH₵{o.totalAmount.toFixed(2)} will be sent back to you within 2-3 days</span>
+                  {!isFarmer && refundWindowLeft === 0 && (
+                    <span className="text-xs text-gray-400 self-center">Refund window closed — sale final</span>
                   )}
-                  {o.status === "refunded" && (
-                    <span className="text-sm text-[#1b5e20] font-semibold">✓ Full refund sent — GH₵{o.totalAmount.toFixed(2)} returned</span>
+                  {!isFarmer && o.status === "delivered" && (
+                    <span className="text-sm text-gray-500 italic self-center">Waiting for the 3-day refund window to close; then the farmer is paid</span>
                   )}
-                  {o.status === "released" && (
+                  {!isFarmer && o.status === "refund_requested" && (
+                    <span className="text-sm text-amber-600 font-semibold">↩ Refund requested — the admin reviews and sends your money within 2-3 days</span>
+                  )}
+                  {!isFarmer && o.status === "refunded" && (
+                    <span className="text-sm text-[#1b5e20] font-semibold">✓ Refund sent — GH₵{(o.refundAmount ?? o.totalAmount).toFixed(2)} returned</span>
+                  )}
+                  {!isFarmer && o.status === "released" && (
                     <span className="text-sm text-[#1b5e20] font-semibold">✓ Payment released to farmer</span>
                   )}
-                  {o.status === "cancelled" && (
+                  {!isFarmer && o.status === "cancelled" && (
                     <span className="text-sm text-red-500">Order cancelled</span>
+                  )}
+                  {isFarmer && o.status === "pending" && (
+                    <span className="text-sm text-gray-500 italic self-center">Waiting for the buyer to pay — do not deliver yet</span>
+                  )}
+                  {isFarmer && o.status === "delivered" && (
+                    <span className="text-sm text-gray-500 italic self-center">Buyer confirmed delivery — payout after the 3-day refund window (unless a refund case opens)</span>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -65,15 +65,18 @@ export async function POST(req: NextRequest) {
         console.log(`Paystack webhook: order ${order.id} marked PAID (ref ${reference})`);
 
         // RELAYED-ORDER MODEL: now that payment is secured, connect the two
-        // sides. The buyer gets the farmer's contact for delivery details;
-        // the farmer gets the buyer's contact to arrange the delivery.
+        // sides. The farmer gets the buyer's contact + delivery location
+        // (payment landed — start delivery); the buyer gets the farmer's.
         try {
           const { sendSms } = await import("@/lib/otp");
           const ref = order.id.slice(-8).toUpperCase();
+          const deliveryLine = order.deliveryAddress
+            ? ` Deliver to: ${order.deliveryAddress}${order.deliveryLat ? ` (GPS ${order.deliveryLat.toFixed(5)},${order.deliveryLng?.toFixed(5)})` : ""}.`
+            : "";
           // farmer side: buyer has paid, deliver to them
           await sendSms(
             order.farmerPhone,
-            `FarmLink: Order ${ref} PAID - ${order.buyerName} (${order.buyerPhone}) bought ${order.quantity} bag(s) of ${order.crop} for GHS${order.totalAmount.toFixed(2)}. Contact them to arrange delivery.`,
+            `FarmLink: Payment received for order ${ref} - ${order.buyerName} (${order.buyerPhone}) paid GHS${order.totalAmount.toFixed(2)} for ${order.crop} x${order.quantity}. START DELIVERY.${deliveryLine}`,
           );
           // buyer side: your farmer contact for this purchase
           await sendSms(

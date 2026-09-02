@@ -12,11 +12,14 @@ interface PendingUser {
 interface Order {
   id: string; crop: string; quantity: number; unitPrice: number;
   totalAmount: number; commissionAmount: number; farmerPayout: number;
+  refundAmount?: number | null; damageDeduction?: number | null;
+  refundReason?: string | null; farmerComplaint?: string | null;
   farmerName: string; farmerPhone: string; buyerName: string; buyerPhone: string;
   status: string; adminNote: string | null; hubtelTxId: string | null; createdAt: string;
 }
 
 import HeaderBanner from "@/components/headerBanner";
+import RefundControls from "@/components/refundControls";
 
 // headerImage setting holds a JSON array of URLs (slideshow) or a single
 // URL string (legacy) — normalize both to an array.
@@ -63,6 +66,11 @@ export default function Admin() {
       setUser(d.user);
       loadAll();
     });
+    // Auto-refresh: new registrations, orders, reports and change requests
+    // appear without a manual reload while the admin watches the panel.
+    const timer = setInterval(() => { loadAll(); }, 20000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const loadAll = () => {
@@ -314,6 +322,7 @@ export default function Admin() {
     }
     const data = await res.json();
     alert(`Removed ${data.purged} rejected registration(s).`);
+    loadAll();
   };
 
   const handleReportStatus = async (id: string, status: string) => {
@@ -812,15 +821,26 @@ export default function Admin() {
                       )}
                       {o.status === "refund_requested" && (
                         <>
-                          <button onClick={() => updateOrderStatus(o.id, "refunded", `Full refund of GH₵${o.totalAmount.toFixed(2)} sent to ${o.buyerName}`)} className="bg-[#e65100] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#bf5000]">
-                          ↩ Send FULL Refund to {o.buyerName} (GH₵{o.totalAmount.toFixed(2)})
-                          </button>
+                          {/* Refund case: reason + farmer complaint + damage adjustment */}
+                          <div className="w-full bg-amber-50 border border-amber-200 rounded-lg p-3 mb-1 text-xs space-y-1">
+                            {o.refundReason && <div className="text-gray-700"><strong>Buyer's reason:</strong> {o.refundReason}</div>}
+                            {o.farmerComplaint
+                              ? <div className="text-red-600"><strong>Farmer's complaint:</strong> {o.farmerComplaint}</div>
+                              : <div className="text-gray-400">No farmer complaint on file</div>}
+                            <div className="text-gray-500">Measure any damage and subtract it below — the buyer receives the adjusted amount.</div>
+                          </div>
+                          <RefundControls order={o} onDone={loadAll} />
                           <button onClick={() => updateOrderStatus(o.id, "delivered", "Refund request declined — buyer contacted")} className="border-2 border-gray-200 text-gray-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-50">
                             Decline Refund
                           </button>
                         </>
                       )}
-                      {o.status === "refunded" && <span className="text-sm text-[#1b5e20] font-semibold">✓ Refund sent to buyer — GH₵{o.totalAmount.toFixed(2)}</span>}
+                      {o.status === "refunded" && (
+                        <span className="text-sm text-[#1b5e20] font-semibold">
+                          ✓ Refund sent — GH₵{(o.refundAmount ?? o.totalAmount).toFixed(2)}
+                          {(o.damageDeduction ?? 0) > 0 && ` (damage -GH₵${(o.damageDeduction ?? 0).toFixed(2)})`}
+                        </span>
+                      )}
                       {o.status === "released" && <span className="text-sm text-[#1b5e20] font-semibold">✓ Payment released — Commission: GH₵{o.commissionAmount.toFixed(2)}</span>}
                       {o.status === "cancelled" && <span className="text-sm text-red-500">Order cancelled</span>}
                     </div>

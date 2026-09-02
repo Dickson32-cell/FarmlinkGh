@@ -64,6 +64,26 @@ export async function GET(req: NextRequest) {
             hubtelTxId: psData.data.id ? String(psData.data.id) : null,
           },
         });
+
+        // RELAYED-ORDER: farmer must know payment landed — start delivery
+        try {
+          const { sendSms } = await import("@/lib/otp");
+          const ref = order.id.slice(-8).toUpperCase();
+          const deliveryLine = order.deliveryAddress
+            ? ` Deliver to: ${order.deliveryAddress}${order.deliveryLat ? ` (GPS ${order.deliveryLat.toFixed(5)},${order.deliveryLng?.toFixed(5)})` : ""}.`
+            : "";
+          await sendSms(
+            order.farmerPhone,
+            `FarmLink: Payment received for order ${ref} - ${order.buyerName} (${order.buyerPhone}) paid GHS${order.totalAmount.toFixed(2)} for ${order.crop} x${order.quantity}. START DELIVERY.${deliveryLine}`,
+          );
+          await sendSms(
+            order.buyerPhone,
+            `FarmLink: Payment received for order ${ref} (${order.crop} x${order.quantity}). Your farmer: ${order.farmerName} - ${order.farmerPhone}. Contact them for delivery.`,
+          );
+        } catch (err) {
+          console.error("[PAYMENT-RELAY] verify-path paid SMS failed:", String(err).slice(0, 120));
+        }
+
         return NextResponse.redirect(
           `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/orders?payment=success&order=${order.id}`
         );

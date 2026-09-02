@@ -55,6 +55,10 @@ export async function PATCH(req: NextRequest) {
           region: body.region ?? undefined,
           location: body.location ?? undefined,
           lookingFor: body.lookingFor ?? undefined,
+          // Default delivery location (GPS + address) for checkout
+          deliveryAddress: body.deliveryAddress ?? undefined,
+          deliveryLat: body.deliveryLat ?? undefined,
+          deliveryLng: body.deliveryLng ?? undefined,
         },
       });
     }

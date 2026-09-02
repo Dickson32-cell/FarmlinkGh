@@ -150,6 +150,7 @@ export default function Dashboard() {
           <Link href="/prices" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#1565c0] hover:bg-[#0d47a1] text-white">Prices</Link>
           <Link href="/profile" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#7b1fa2] hover:bg-[#6a1b9a] text-white">Profile</Link>
           {user.role === "buyer" && <Link href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">My Orders</Link>}
+          {user.role === "farmer" && <Link href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">Orders to Deliver</Link>}
           {user.role === "admin" && <Link href="/admin" className="bg-[#e65100] px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#ff6f00]">Admin Panel</Link>}
           <button onClick={logout} className="bg-red-600/70 px-3 py-1.5 rounded-lg text-sm hover:bg-red-600">Logout</button>
         </div>

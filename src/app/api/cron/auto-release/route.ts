@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET/POST: 48-hour auto-release job.
-// Orders in "delivered" state for 48+ hours with no dispute are auto-released:
-// status → "released", listing → sold.
+// Orders the buyer has confirmed delivered are auto-released 72h later
+// (after the refund window closes) if no dispute: status → "released",
+// listing → sold.
 //
 // Two ways to fire it — BOTH must present the CRON_SECRET:
 //   1. Vercel Cron (see vercel.json, daily). When CRON_SECRET is set on the
-//      project, Vercel automatically sends Authorization: Bearer ${CRON_SECRET}.
+//      project, Vercel automatically sends Authorization: Bearer ***
 //   2. Any external scheduler (cron-job.org, GitHub Actions) hitting this route
 //      with header x-cron-secret: ${CRON_SECRET}.
 //
 // NOTE: x-vercel-cron headers are spoofable by external callers and are NOT
 // used as a trust boundary here — only the shared secret authorizes a run.
 //
-// The job itself is idempotent and only releases orders already 48h past
-// delivery, so triggering it (even repeatedly) can never release money early.
+// The job itself is idempotent and only releases orders already 72h past
+// delivery (refund window closed), so triggering it repeatedly can never
+// release money early.
 
-const GRACE_HOURS = 48;
+const GRACE_HOURS = 72; // matches the buyer's 3-day refund window — never release before it closes
 // Rejected registrations older than this are auto-removed (their ID photos
 // deleted with them). They can always re-register fresh.
 const REJECTED_RETENTION_DAYS = 30;
@@ -37,6 +38,8 @@ async function runJob() {
       },
     });
     for (const user of oldRejected) {
+      // change requests FK-block user deletion — clear them first
+      await prisma.profileChangeRequest.deleteMany({ where: { userId: user.id } }).catch(() => { });
       const farmer = await prisma.farmer.findUnique({ where: { userId: user.id } });
       if (farmer) {
         await prisma.review.deleteMany({ where: { farmerId: farmer.id } });

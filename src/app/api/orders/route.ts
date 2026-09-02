@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only buyers can place orders" }, { status: 403 });
 
   try {
-    const { listingId, quantity } = await req.json();
+    const { listingId, quantity, deliveryAddress, deliveryLat, deliveryLng, saveLocation } = await req.json();
     if (!listingId || !quantity)
       return NextResponse.json({ error: "listingId and quantity required" }, { status: 400 });
 
@@ -47,6 +47,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "This listing is no longer available" }, { status: 400 });
 
     const buyer = await prisma.buyer.findUnique({ where: { userId: session.userId } });
+
+    // Delivery location: checkout value wins; else the buyer's saved default
+    const address = (deliveryAddress || buyer?.deliveryAddress || "").toString().trim().slice(0, 300);
+    const lat = typeof deliveryLat === "number" ? deliveryLat : buyer?.deliveryLat ?? null;
+    const lng = typeof deliveryLng === "number" ? deliveryLng : buyer?.deliveryLng ?? null;
+
+    // "Save as my default delivery location" — remembered for next checkout
+    if (saveLocation === true && address) {
+      await prisma.buyer.update({
+        where: { userId: session.userId },
+        data: { deliveryAddress: address, deliveryLat: lat, deliveryLng: lng },
+      }).catch(() => { /* non-fatal */ });
+    }
 
     const totalAmount = listing.price * quantity;
     const commissionAmount = totalAmount * COMMISSION_RATE;
@@ -72,6 +85,10 @@ export async function POST(req: NextRequest) {
         buyerName: buyer?.name || "Unknown",
         buyerPhone: buyer?.phone || session.userId,
         status: "pending",
+        // Delivery location for the farmer
+        deliveryAddress: address || null,
+        deliveryLat: lat,
+        deliveryLng: lng,
       },
     });
 
@@ -102,7 +119,7 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { id, status, adminNote } = await req.json();
+    const { id, status, adminNote, reason, complaint, refundAmount, damageDeduction } = await req.json();
 
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -133,6 +150,18 @@ export async function PATCH(req: NextRequest) {
           status,
           adminNote: adminNote || order.adminNote,
           refundedAt: status === "refunded" ? new Date() : order.refundedAt,
+          // Damage-adjusted refund: what the buyer actually receives.
+          // Default = full totalAmount; the admin may deduct measured damage
+          // after reviewing the farmer's complaint.
+          refundAmount: status === "refunded"
+            ? Math.max(0, Math.min(
+                typeof refundAmount === "number" ? refundAmount : order.totalAmount,
+                order.totalAmount,
+              ))
+            : order.refundAmount,
+          damageDeduction: status === "refunded"
+            ? Math.max(0, typeof damageDeduction === "number" ? damageDeduction : 0)
+            : order.damageDeduction,
         },
       });
 
@@ -147,6 +176,28 @@ export async function PATCH(req: NextRequest) {
         },
       });
 
+      // SMS notifications on payment confirmation
+      if (status === "paid") {
+        // RELAYED-ORDER: tell the FARMER payment landed — start delivery
+        try {
+          const { sendSms } = await import("@/lib/otp");
+          const ref = updated.id.slice(-8).toUpperCase();
+          const deliveryLine = updated.deliveryAddress
+            ? ` Deliver to: ${updated.deliveryAddress}${updated.deliveryLat ? ` (GPS ${updated.deliveryLat.toFixed(5)},${updated.deliveryLng?.toFixed(5)})` : ""}.`
+            : "";
+          await sendSms(
+            updated.farmerPhone,
+            `FarmLink: Payment received for order ${ref} - ${updated.buyerName} (${updated.buyerPhone}) paid GHS${updated.totalAmount.toFixed(2)} for ${updated.crop} x${updated.quantity}. START DELIVERY.${deliveryLine}`,
+          );
+          await sendSms(
+            updated.buyerPhone,
+            `FarmLink: Payment received for order ${ref} (${updated.crop} x${updated.quantity}). Your farmer: ${updated.farmerName} - ${updated.farmerPhone}. Contact them for delivery.`,
+          );
+        } catch (err) {
+          console.error("[PAYMENT-RELAY] paid SMS failed:", String(err).slice(0, 120));
+        }
+      }
+
       // SMS notifications on refund events
       if (status === "refund_requested") {
         // tell the farmer someone disputed their product
@@ -156,10 +207,15 @@ export async function PATCH(req: NextRequest) {
           .catch(() => { });
       }
       if (status === "refunded") {
-        // confirm to the buyer — FULL purchase amount, never minus commission
+        // confirm to the buyer — full purchase amount unless the admin
+        // deducted measured damage after the farmer's complaint
+        const actual = updated.refundAmount ?? updated.totalAmount;
+        const deduction = updated.damageDeduction || 0;
         const { sendSms } = await import("@/lib/otp");
         await sendSms(order.buyerPhone,
-          `FarmLink: Your full refund of GHS${order.totalAmount.toFixed(2)} for ${order.crop} has been sent. It arrives within 24h.`)
+          deduction > 0
+            ? `FarmLink: Refund of GHS${actual.toFixed(2)} sent for ${order.crop} (GHS${deduction.toFixed(2)} damage deduction applied). Arrives within 24h.`
+            : `FarmLink: Your full refund of GHS${actual.toFixed(2)} for ${order.crop} has been sent. It arrives within 24h.`)
           .catch(() => { });
         try {
           await prisma.listing.update({
@@ -200,6 +256,15 @@ export async function PATCH(req: NextRequest) {
           where: { id },
           data: { status: "delivered", deliveredAt: new Date() },
         });
+
+        // Remind the buyer of the refund window: 3 days from now
+        try {
+          const { sendSms } = await import("@/lib/otp");
+          await sendSms(order.buyerPhone,
+            `FarmLink: Delivery confirmed for ${order.crop} x${order.quantity}. You have 3 days to request a refund if the product falls short. After that the farmer is paid.`)
+            .catch(() => { });
+        } catch { /* non-fatal */ }
+
         return NextResponse.json(updated);
       }
 
@@ -209,9 +274,26 @@ export async function PATCH(req: NextRequest) {
         if (order.status !== "paid" && order.status !== "delivered")
           return NextResponse.json({ error: "Refunds can only be requested after payment" }, { status: 400 });
 
+        // REFUND WINDOW: once delivery is confirmed the buyer has 72 HOURS
+        // (the 2-3 day policy) to request a refund. After that the sale is
+        // final and the farmer's payout is released.
+        if (order.status === "delivered" && order.deliveredAt) {
+          const hoursSinceDelivery = (Date.now() - new Date(order.deliveredAt).getTime()) / (1000 * 60 * 60);
+          if (hoursSinceDelivery > 72) {
+            return NextResponse.json(
+              { error: "The 3-day refund window after delivery has closed. This sale is final." },
+              { status: 400 },
+            );
+          }
+        }
+
         const updated = await prisma.order.update({
           where: { id },
-          data: { status: "refund_requested", refundRequestedAt: new Date() },
+          data: {
+            status: "refund_requested",
+            refundRequestedAt: new Date(),
+            refundReason: (reason || "").toString().trim().slice(0, 500) || order.refundReason,
+          },
         });
 
         // Notify farmer + admin
@@ -221,6 +303,33 @@ export async function PATCH(req: NextRequest) {
           .catch(() => { });
         await sendSms(process.env.ADMIN_MOMO || "0248847819",
           `FarmLink ADMIN: Refund requested — order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GH₵${order.totalAmount.toFixed(2)}). Review in admin panel.`)
+          .catch(() => { });
+
+        return NextResponse.json(updated);
+      }
+
+      // FARMER COMPLAINT on a refund case: the farmer claims the buyer
+      // damaged/mishandled the product. The admin measures the damage and
+      // subtracts it from the refund money.
+      if (status === "farmer_complaint") {
+        const farmer = await prisma.farmer.findUnique({ where: { userId: session.userId } });
+        if (!farmer || order.farmerId !== farmer.id)
+          return NextResponse.json({ error: "You can only file complaints on your own orders" }, { status: 403 });
+        if (order.status !== "refund_requested" && order.status !== "paid" && order.status !== "delivered")
+          return NextResponse.json({ error: "Complaints apply to refund cases and active orders" }, { status: 400 });
+
+        const updated = await prisma.order.update({
+          where: { id },
+          data: {
+            farmerComplaint: (complaint || "").toString().trim().slice(0, 500),
+            farmerComplaintAt: new Date(),
+          },
+        });
+
+        // alert the admin
+        const { sendSms } = await import("@/lib/otp");
+        await sendSms(process.env.ADMIN_MOMO || "0248847819",
+          `FarmLink ADMIN: Farmer complaint on order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GHS${order.totalAmount.toFixed(2)}) - refund under review. Check admin panel.`)
           .catch(() => { });
 
         return NextResponse.json(updated);
