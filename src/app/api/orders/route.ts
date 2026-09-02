@@ -308,9 +308,11 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json(updated);
       }
 
-      // FARMER COMPLAINT on a refund case: the farmer claims the buyer
-      // damaged/mishandled the product. The admin measures the damage and
-      // subtracts it from the refund money.
+      return NextResponse.json({ error: "Buyers can only confirm delivery or request refunds" }, { status: 403 });
+    }
+
+    // ---- FARMER actions: file a damage complaint on a refund case ----
+    if (session.role === "farmer") {
       if (status === "farmer_complaint") {
         const farmer = await prisma.farmer.findUnique({ where: { userId: session.userId } });
         if (!farmer || order.farmerId !== farmer.id)
@@ -334,8 +336,7 @@ export async function PATCH(req: NextRequest) {
 
         return NextResponse.json(updated);
       }
-
-      return NextResponse.json({ error: "Buyers can only confirm delivery or request refunds" }, { status: 403 });
+      return NextResponse.json({ error: "Not authorized to update orders" }, { status: 403 });
     }
 
     return NextResponse.json({ error: "Not authorized to update orders" }, { status: 403 });
