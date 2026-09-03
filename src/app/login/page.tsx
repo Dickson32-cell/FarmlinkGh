@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PasswordInput from "@/components/passwordInput";
@@ -89,7 +89,22 @@ export default function Login() {
     }
   };
 
+  // Resend cooldown: users tap resend at 30s and cancel the code still in
+  // flight (slow-lane latency is ~1-5 min until the sender ID is whitelisted).
+  // A 60s countdown makes the wait impossible to shortcut.
+  const [cooldown, setCooldown] = useState(0);
+  useEffect(() => {
+    if (stage !== "otp") return;
+    setCooldown(60);
+  }, [stage]);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown((c) => c - 1), 1000);
+    return () => clearInterval(t);
+  }, [cooldown > 0]);
+
   const resend = async () => {
+    if (cooldown > 0 || resending) return;
     setResending(true);
     setError("");
     const res = await fetch("/api/auth/login", {
@@ -102,6 +117,7 @@ export default function Login() {
     if (res.ok && data.otpRequired) {
       setDevCode(data.devCode || null);
       setError("");
+      setCooldown(60);
     } else {
       setError(data.error || "Could not resend code");
     }
@@ -166,8 +182,8 @@ export default function Login() {
             </form>
             <div className="flex justify-between mt-5 text-sm">
               <button onClick={() => { setStage("credentials"); setError(""); setOtp(""); }} className="text-gray-500 hover:text-gray-700">← Change number</button>
-              <button onClick={resend} disabled={resending} className="text-[#1b5e20] font-semibold hover:underline disabled:opacity-50">
-                {resending ? "Sending..." : "Resend code"}
+              <button onClick={resend} disabled={resending || cooldown > 0} className="text-[#1b5e20] font-semibold hover:underline disabled:opacity-50 disabled:no-underline">
+                {resending ? "Sending..." : cooldown > 0 ? `Resend code (${cooldown}s)` : "Resend code"}
               </button>
             </div>
           </>
@@ -198,8 +214,8 @@ export default function Login() {
             </form>
             <div className="flex justify-between mt-5 text-sm">
               <button onClick={() => { setStage("credentials"); setError(""); setOtp(""); }} className="text-gray-500 hover:text-gray-700">← Back to login</button>
-              <button onClick={resend} disabled={resending} className="text-[#1b5e20] font-semibold hover:underline disabled:opacity-50">
-                {resending ? "Sending..." : "Resend code"}
+              <button onClick={resend} disabled={resending || cooldown > 0} className="text-[#1b5e20] font-semibold hover:underline disabled:opacity-50 disabled:no-underline">
+                {resending ? "Sending..." : cooldown > 0 ? `Resend code (${cooldown}s)` : "Resend code"}
               </button>
             </div>
             <p className="text-xs text-center text-gray-400 mt-4">
