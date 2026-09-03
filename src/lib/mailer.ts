@@ -24,7 +24,7 @@ export async function sendEmail(
   try {
     // ---- Resend (simplest real provider) ----
     if (resendKey && resendKey.length > 10) {
-      const from = process.env.EMAIL_FROM || "FarmLink <onboarding@resend.dev>";
+      const from = process.env.EMAIL_FROM || "FarmLink Ghana <onboarding@resend.dev>";
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {

@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
           // buyer side: your farmer contact for this purchase
           await sendSms(
             order.buyerPhone,
-            `FarmLink: Payment received for order ${ref} (${order.crop} x${order.quantity}). Your farmer: ${order.farmerName} - ${order.farmerPhone}. Contact them for delivery.`,
+            `FarmLink: Payment received for order ${ref} (${order.crop} x${order.quantity}). ${order.farmerName} has your delivery details and will call you to arrange delivery.`,
           );
           console.log(`[ORDER-RELAY] paid-order contact SMS sent to farmer ${order.farmerPhone} + buyer ${order.buyerPhone}`);
         } catch (err) {

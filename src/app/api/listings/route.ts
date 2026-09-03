@@ -46,7 +46,8 @@ export async function GET(req: NextRequest) {
   }
 
   const masked = listings.map((l: any) => {
-    const unlocked = isFarmerOrAdmin || paidListingIds.has(l.id);
+    // Buyers never see farmer phones (farmer initiates contact after payment).
+  const unlocked = isFarmerOrAdmin;
     return {
       ...l,
       farmer: l.farmer ? { ...l.farmer, phone: unlocked ? l.farmer.phone : "" } : l.farmer,
@@ -124,7 +125,7 @@ export async function POST(req: NextRequest) {
             if (!matches || !b.user?.phone) continue;
 
             const msg = isFirst
-              ? `FarmLink: ${body.crop} is now on the market - GH₵${listing.price}/bag by ${farmer.name} in ${listing.region}. Login to buy: framlinkgh.vercel.app`
+              ? `FarmLink: ${body.crop} is now on the market - GH₵${listing.price}/bag by ${farmer.name} in ${listing.region}. Login to buy: farmlinkghana.vercel.app`
               : `FarmLink: Price drop! ${body.crop} now GH₵${listing.price}/bag (was GH₵${prevLowest}). By ${farmer.name} in ${listing.region}. Login to buy.`;
             await sendSms(b.user.phone, msg).catch(() => { });
             // throttle: tiny pause avoids hammering the SMS API

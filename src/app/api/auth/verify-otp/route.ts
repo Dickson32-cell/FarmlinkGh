@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyOtp } from "@/lib/otp";
 import { createToken } from "@/lib/auth";
+import { normalizeGhanaPhone } from "@/lib/phone";
 
 // POST: Step 2 of 2FA login — verify the SMS code, then issue the session cookie.
 export async function POST(req: NextRequest) {
@@ -11,7 +12,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Phone and code required" }, { status: 400 });
     }
 
-    const result = await verifyOtp(phone, code, "login");
+    // normalize like the login step does, so the OTP lookup always matches
+    const normalizedPhone = normalizeGhanaPhone(phone);
+    const result = await verifyOtp(normalizedPhone, code, "login");
     if (!result.ok) {
       const reason = result.reason ?? "failed";
       const messages: Record<string, string> = {
@@ -25,7 +28,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { phone } });
+    const user = await prisma.user.findUnique({ where: { phone: normalizedPhone } });
     if (!user || user.status !== "approved") {
       return NextResponse.json({ error: "Account not available" }, { status: 403 });
     }

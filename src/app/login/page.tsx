@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PasswordInput from "@/components/passwordInput";
 
 export default function Login() {
   const [phone, setPhone] = useState("");
@@ -122,7 +123,7 @@ export default function Login() {
               </div>
               <div>
                 <label className="text-xs font-semibold uppercase text-gray-500">Password</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" required />
+                <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
               </div>
               <div className="text-right">
                 <Link href="/forgot-password" className="text-xs text-[#1b5e20] font-semibold hover:underline">Forgot password?</Link>

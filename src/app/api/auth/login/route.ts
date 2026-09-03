@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth";
 import { createOtp, sendSms, detectNetwork } from "@/lib/otp";
 import { createAdminOtp, sendAdminCodeEmail, ADMIN_EMAIL } from "@/lib/adminOtp";
+import { normalizeGhanaPhone } from "@/lib/phone";
 
 // POST: Step 1 of 2FA login — verify phone+password, then send an OTP.
 // A session is NOT issued here. Client must complete:
@@ -15,7 +16,9 @@ export async function POST(req: NextRequest) {
     if (!phone || !password) {
       return NextResponse.json({ error: "Phone and password required" }, { status: 400 });
     }
-    const user = await prisma.user.findUnique({ where: { phone } });
+    // accept 0…, +233…, 233…, spaced forms — normalize before lookup
+    const normalizedPhone = normalizeGhanaPhone(phone);
+    const user = await prisma.user.findUnique({ where: { phone: normalizedPhone } });
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
@@ -104,7 +107,7 @@ export async function POST(req: NextRequest) {
 
     // ─── FARMER / BUYER PATH: SMS code ───
     // Record the network this user's phone belongs to (visible on the OTP screen)
-    const network = detectNetwork(phone);
+    const network = detectNetwork(normalizedPhone);
     if (user.lastNetwork !== network) {
       await prisma.user.update({ where: { id: user.id }, data: { lastNetwork: network } });
     }
@@ -128,7 +131,7 @@ export async function POST(req: NextRequest) {
     const OTP_TTL_MINUTES = 10;
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const recent = await prisma.otpCode.count({
-      where: { phone, createdAt: { gte: hourAgo } },
+      where: { phone: normalizedPhone, createdAt: { gte: hourAgo } },
     });
     if (recent >= 5) {
       return NextResponse.json(
@@ -143,12 +146,12 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
     // invalidate previous unused codes
-    await prisma.otpCode.updateMany({ where: { phone, used: false }, data: { used: true } });
-    await prisma.otpCode.create({ data: { phone, codeHash, purpose: "login", expiresAt } });
+    await prisma.otpCode.updateMany({ where: { phone: normalizedPhone, used: false }, data: { used: true } });
+    await prisma.otpCode.create({ data: { phone: normalizedPhone, codeHash, purpose: "login", expiresAt } });
 
-    const masked = phone.slice(0, 4) + "****" + phone.slice(-3);
+    const masked = normalizedPhone.slice(0, 4) + "****" + normalizedPhone.slice(-3);
     const smsText = `FarmLink: Your login code is ${code}. Valid for 10 minutes. Do not share this code with anyone.`;
-    const { sent, provider } = await sendSms(phone, smsText);
+    const { sent, provider } = await sendSms(normalizedPhone, smsText);
 
     if (provider === "console") {
       // Dev mode: the code is in the server console — tell the user it's simulated

@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { detectNetwork } from "@/lib/otp";
+import { normalizeGhanaPhone, isValidGhanaPhone } from "@/lib/phone";
 
 export async function POST(req: NextRequest) {
   try {
     const { name, phone, password, role, ghanaCardUrl, idType, idNumber, passportUrl, profile } = await req.json();
     if (!name || !phone || !password || !role) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
+    }
+    // store phones in ONE canonical local format (0…)
+    const normalizedPhone = normalizeGhanaPhone(phone);
+    if (!isValidGhanaPhone(normalizedPhone)) {
+      return NextResponse.json({ error: "Enter a valid Ghana mobile number (e.g. 0244123456)" }, { status: 400 });
     }
     if (!["farmer", "buyer"].includes(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
@@ -54,7 +60,7 @@ export async function POST(req: NextRequest) {
     // Rejected users get a fresh start: their old account is replaced so
     // they can re-register with a better photo/number as the rejection
     // message instructs. Pending/approved accounts still block the phone.
-    const existing = await prisma.user.findUnique({ where: { phone } });
+    const existing = await prisma.user.findUnique({ where: { phone: normalizedPhone } });
     if (existing) {
       if (existing.status === "rejected") {
         await prisma.farmer.deleteMany({ where: { userId: existing.id } }).catch(() => {});
@@ -69,7 +75,7 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.create({
       data: {
         name,
-        phone,
+        phone: normalizedPhone,
         password: hashed,
         role,
         // Buyers are approved instantly (no ID to review); farmers stay
@@ -79,7 +85,7 @@ export async function POST(req: NextRequest) {
         passportUrl: role === "farmer" && ID === "passport" ? passportUrl : "",
         idType: role === "farmer" ? ID : "none",
         idNumber: role === "farmer" ? String(idNumber || "").toUpperCase().trim() : "",
-        lastNetwork: detectNetwork(phone),
+        lastNetwork: detectNetwork(normalizedPhone),
       },
     });
 
@@ -92,7 +98,7 @@ export async function POST(req: NextRequest) {
     if (role === "farmer") {
       await prisma.farmer.create({
         data: {
-          userId: user.id, name, phone,
+          userId: user.id, name, phone: normalizedPhone,
           region: p.region || "", town: p.town || "",
           farmSize: p.farmSize || 0, mainCrops: p.mainCrops || "",
         },
@@ -100,7 +106,7 @@ export async function POST(req: NextRequest) {
     } else if (role === "buyer") {
       await prisma.buyer.create({
         data: {
-          userId: user.id, name, phone,
+          userId: user.id, name, phone: normalizedPhone,
           businessType: p.businessType || "",
           region: p.region || "",
           location: p.town || p.location || "",
@@ -117,8 +123,8 @@ export async function POST(req: NextRequest) {
       await sendSms(
         process.env.ADMIN_MOMO || "0248847819",
         role === "buyer"
-          ? `FarmLink: New buyer signup - ${name} (${phone}). Auto-approved (no ID needed for buyers).`
-          : `FarmLink: New ${role} registration - ${name} (${phone}). Approve in admin panel.`,
+          ? `FarmLink: New buyer signup - ${name} (${normalizedPhone}). Auto-approved (no ID needed for buyers).`
+          : `FarmLink: New ${role} registration - ${name} (${normalizedPhone}). Approve in admin panel.`,
       );
     } catch (err) {
       console.error("[ADMIN-ALERT-SMS] registration alert failed:", String(err).slice(0, 120));

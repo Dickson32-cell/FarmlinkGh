@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createOtp, sendSms, detectNetwork } from "@/lib/otp";
+import { normalizeGhanaPhone, isValidGhanaPhone } from "@/lib/phone";
 
 // POST: Forgot-password step 1 — user submits their phone.
 // Sends an OTP (purpose="reset") ONLY if the account exists.
@@ -12,7 +13,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Phone number required" }, { status: 400 });
     }
 
-    const normalized = phone.trim();
+    // Normalize: accept 0…, +233…, 233…, spaced/dashed forms. The DB stores
+    // the local 0… form — without this, a differently-typed number silently
+    // matched no account and no OTP was ever created.
+    const normalized = normalizeGhanaPhone(phone);
+    if (!isValidGhanaPhone(normalized)) {
+      return NextResponse.json(
+        { error: "Enter a valid Ghana mobile number (e.g. 0244123456)" },
+        { status: 400 },
+      );
+    }
     const user = await prisma.user.findUnique({ where: { phone: normalized } });
 
     // Uniform response regardless of account existence (no user enumeration)

@@ -248,8 +248,14 @@ export default function Orders() {
                 <div className="grid md:grid-cols-2 gap-3 text-sm mb-3">
                   <div className="space-y-1">
                     <div className="text-xs font-bold uppercase text-gray-400">{isFarmer ? "Buyer" : "Farmer"}</div>
-                    <div>{isFarmer ? o.buyerName : o.farmerName} · {isFarmer ? o.buyerPhone : o.farmerPhone}</div>
-                    {!isFarmer && <div className="text-xs text-gray-400">Contact details unlocked after payment</div>}
+                    {isFarmer ? (
+                      <div>{o.buyerName} · {o.buyerPhone}</div>
+                    ) : (
+                      <>
+                        <div>{o.farmerName}</div>
+                        <div className="text-xs text-gray-400">Has your delivery details — calls you after payment. Support: 0595726252.</div>
+                      </>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <div className="text-xs font-bold uppercase text-gray-400">Money</div>

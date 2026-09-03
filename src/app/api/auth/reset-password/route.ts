@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyOtp } from "@/lib/otp";
 import { hashPassword } from "@/lib/auth";
+import { normalizeGhanaPhone } from "@/lib/phone";
 
 // POST: Forgot-password step 2 — verify OTP + set the new password.
 // Rules:
@@ -25,14 +26,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // normalize the same way step 1 does — or the OTP lookup fails here too
+    const normalizedPhone = normalizeGhanaPhone(phone);
+
     // Account must still be active
-    const user = await prisma.user.findUnique({ where: { phone: phone.trim() } });
+    const user = await prisma.user.findUnique({ where: { phone: normalizedPhone } });
     if (!user || user.status !== "approved") {
       return NextResponse.json({ error: "Verification failed" }, { status: 401 });
     }
 
     // Verify the reset OTP
-    const result = await verifyOtp(phone.trim(), code, "reset");
+    const result = await verifyOtp(normalizedPhone, code, "reset");
     if (!result.ok) {
       const messages: Record<string, string> = {
         expired: "Reset code expired. Request a new one.",

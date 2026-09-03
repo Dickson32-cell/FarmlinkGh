@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PasswordInput from "@/components/passwordInput";
 import { ghanaRegions, ghanaTowns } from "@/lib/ghana-data";
 
 import HeaderBanner from "@/components/headerBanner";
@@ -214,9 +215,9 @@ export default function Profile() {
             {showPassForm && (
               <div className="mt-3 border-2 border-gray-100 rounded-xl p-4 bg-gray-50">
                 <label className="text-xs font-semibold uppercase text-gray-500">Current Password</label>
-                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047] bg-white" />
+                <PasswordInput value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047] bg-white pr-12"  />
                 <label className="text-xs font-semibold uppercase text-gray-500 mt-3 block">New Password (min 8 characters)</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047] bg-white" />
+                <PasswordInput value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047] bg-white pr-12"  />
                 <button type="button" onClick={submitPasswordChange} disabled={!currentPassword || newPassword.length < 8} className="mt-3 w-full bg-[#1b5e20] text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-[#0d3818] disabled:opacity-50">
                   Submit for Admin Approval
                 </button>

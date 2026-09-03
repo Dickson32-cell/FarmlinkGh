@@ -41,30 +41,14 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const avgRating = agg._avg.rating ? Math.round(agg._avg.rating * 10) / 10 : 0;
     const reviewCount = agg._count.rating || 0;
 
-    // Contact unlock check — farmer self, admin, or paid buyer
+    // Contact unlock — POLICY (2026-09): farmer self + admin only.
+    // Buyers never see the farmer's phone, paid or not (Jumia-style);
+    // the farmer receives the buyer's details and initiates delivery.
     let contactUnlocked = false;
     const session = await getSession(req);
     if (session) {
       if (session.role === "admin" || session.userId === farmer.userId) {
         contactUnlocked = true;
-      } else if (session.role === "buyer") {
-        // Orders store raw listingId (no FK relation) — resolve this farmer's
-        // listings first, then check for a paid order on any of them
-        const farmerListings = await prisma.listing.findMany({
-          where: { farmerId: id },
-          select: { id: true },
-        });
-        const paidOrder = farmerListings.length
-          ? await prisma.order.findFirst({
-              where: {
-                buyerId: session.userId,
-                status: { in: ["paid", "delivered", "released"] },
-                listingId: { in: farmerListings.map((l) => l.id) },
-              },
-              select: { id: true },
-            })
-          : null;
-        contactUnlocked = !!paidOrder;
       }
     }
 

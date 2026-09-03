@@ -22,7 +22,7 @@ export default function SiteFooter({ dark = true }: { dark?: boolean }) {
         </div>
         <div className="text-xs opacity-70 space-y-1">
           <div>Support: 0595726252 · info.rametechconsultancy@gmail.com</div>
-          <div>framlinkgh.vercel.app</div>
+          <div>farmlinkghana.vercel.app</div>
           <div>FarmLink Ghana © 2026 — Connecting farmers with buyers</div>
         </div>
       </div>

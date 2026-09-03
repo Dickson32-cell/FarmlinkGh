@@ -17,18 +17,12 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   let contactUnlocked = false;
   const session = await getSession(req);
   if (session) {
+    // POLICY (Jumia-style, 2026-09): only the owning farmer and the admin
+    // ever see the farmer's phone. Buyers are served by the farmer (who
+    // receives their full delivery details at payment) — the buyer's
+    // contact field stays masked on every listing, paid or not.
     if (session.role === "admin" || (session.role === "farmer" && listing.farmer && listing.farmer.userId === session.userId)) {
       contactUnlocked = true;
-    } else if (session.role === "buyer") {
-      const paidOrder = await prisma.order.findFirst({
-        where: {
-          listingId: id,
-          buyerId: session.userId,
-          status: { in: ["paid", "delivered", "released"] },
-        },
-        select: { id: true },
-      });
-      contactUnlocked = !!paidOrder;
     }
   }
 

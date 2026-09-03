@@ -21,8 +21,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ unlocked: true, reason: "owner" });
   }
 
-  // buyer path: any PAID-order on this listing (paid, delivered, released —
-  // but NOT pending, refund_requested or refunded) unlocks the contact
+  // POLICY (Jumia-style, 2026-09): buyers NEVER see the farmer's direct
+  // contact — even after payment. The farmer receives the buyer's full
+  // details (name, phone, address, GPS) and initiates delivery contact.
+  // This keeps every reorder on-platform and protects the commission.
+  // Buyers with a paid order are told their farmer will call them.
   const paidOrder = await prisma.order.findFirst({
     where: {
       listingId: id,
@@ -32,5 +35,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     select: { id: true },
   });
 
-  return NextResponse.json({ unlocked: !!paidOrder, reason: paidOrder ? "paid" : "unpaid" });
+  return NextResponse.json({
+    unlocked: false,
+    farmerCalls: !!paidOrder,
+    reason: paidOrder ? "farmer_will_call" : "unpaid",
+  });
 }

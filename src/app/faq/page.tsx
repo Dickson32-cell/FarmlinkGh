@@ -71,7 +71,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: "How do I contact a farmer?",
-        a: <>Every listing shows the farmer&apos;s phone number with <strong>WhatsApp</strong> and <strong>Call</strong> buttons. You can also open the farmer&apos;s profile to see their location, produce and buyer reviews.</>,
+        a: <>You order and pay on FarmLink — the farmer is instantly SMSed your name, phone number, delivery address and GPS location, and calls you to arrange delivery. The farmer&apos;s direct number stays with FarmLink, which keeps every trade on the platform and your payments protected. If anything goes wrong, call support at 0595726252.</>,
       },
       {
         q: "What does a farmer's star rating mean?",

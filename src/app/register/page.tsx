@@ -2,6 +2,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import PasswordInput from "@/components/passwordInput";
 import { ghanaRegions, ghanaTowns } from "@/lib/ghana-data";
 
 const regions = ghanaRegions;
@@ -345,7 +346,7 @@ function RegisterForm() {
             </div>
             <div>
               <label className="text-xs font-semibold uppercase text-gray-500">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" required />
+              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none pr-12" required />
             </div>
           </div>
           {role === "farmer" ? (

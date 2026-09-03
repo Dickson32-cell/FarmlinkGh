@@ -30,6 +30,7 @@ interface Farmer {
   mainCrops: string;
   avgRating: number;
   reviewCount: number;
+  contactUnlocked?: boolean;
 }
 
 import HeaderBanner from "@/components/headerBanner";
@@ -43,7 +44,6 @@ export default function FarmerProfile() {
   const [loading, setLoading] = useState(true);
   // Direct contact unlocks after the viewer has PAID for any of this
   // farmer's listings (relayed-order model).
-  const [anyContactPaid, setAnyContactPaid] = useState(false);
 
   useEffect(() => {
     fetch(`/api/farmers/${id}`)
@@ -56,17 +56,8 @@ export default function FarmerProfile() {
         // has the viewer paid for any of this farmer's listings?
         const listingIds = (data.listings || []).map((l: any) => l.id).filter(Boolean);
         if (listingIds.length > 0) {
-          fetch("/api/listings/contact-check", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ listingIds }),
-          })
-            .then((r) => r.json())
-            .then((d) => setAnyContactPaid(Object.values(d.unlocked || {}).some(Boolean)))
-            .catch(() => { });
         }
         // server-side truth wins if it says locked (phone masked in API)
-        if ((data.farmer as any)?.contactUnlocked === false) setAnyContactPaid(false);
       })
       .catch(() => setLoading(false));
   }, [id]);
@@ -131,14 +122,14 @@ export default function FarmerProfile() {
               )}
             </div>
             <div className="flex flex-col gap-2">
-              {anyContactPaid ? (
+              {farmer.contactUnlocked ? (
                 <>
                   <a href={`https://wa.me/233${farmer.phone.replace(/^0/, "")}`} target="_blank" className="bg-green-600 text-white text-center px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-green-700">WhatsApp</a>
                   <a href={`tel:${farmer.phone}`} className="bg-[#1b5e20] text-white text-center px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#0d3818]">Call {farmer.phone}</a>
                 </>
               ) : (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700 text-center">
-                  Farmer contact unlocks after you order &amp; pay — FarmLink relays your order to them by SMS.
+                  Order &amp; pay — the farmer is SMSed your name, phone, address and GPS, and calls you to arrange delivery. Support: 0595726252.
                 </div>
               )}
             </div>

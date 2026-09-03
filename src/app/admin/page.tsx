@@ -593,7 +593,7 @@ export default function Admin() {
                 onChange={(e) => setBcMessage(e.target.value)}
                 rows={3}
                 maxLength={220}
-                placeholder="e.g. Fresh maize now on FarmLink from GHS 100/bag in Koforidua. Order today: framlinkgh.vercel.app"
+                placeholder="e.g. Fresh maize now on FarmLink from GHS 100/bag in Koforidua. Order today: farmlinkghana.vercel.app"
                 className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none"
               />
               <div className={`text-xs mt-1 font-semibold ${bcLength.overLimit ? "text-red-600" : "text-gray-500"}`}>

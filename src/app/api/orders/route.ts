@@ -23,6 +23,13 @@ export async function GET(req: NextRequest) {
     where,
     orderBy: { createdAt: "desc" },
   });
+
+  // POLICY (2026-09): buyers never see the farmer's phone — the farmer
+  // receives the buyer's details and initiates contact. Mask it in the
+  // payload (devtools-proof), farmers and admins see everything.
+  if (session.role === "buyer") {
+    return NextResponse.json(orders.map((o) => ({ ...o, farmerPhone: "" })));
+  }
   return NextResponse.json(orders);
 }
 
@@ -216,7 +223,7 @@ export async function PATCH(req: NextRequest) {
           );
           await sendSms(
             updated.buyerPhone,
-            `FarmLink: Payment received for order ${ref} (${updated.crop} x${updated.quantity}). Your farmer: ${updated.farmerName} - ${updated.farmerPhone}. Contact them for delivery.`,
+            `FarmLink: Payment received for order ${ref} (${updated.crop} x${updated.quantity}). ${updated.farmerName} has your delivery details and will call you to arrange delivery.`,
           );
         } catch (err) {
           console.error("[PAYMENT-RELAY] paid SMS failed:", String(err).slice(0, 120));
@@ -274,7 +281,7 @@ export async function PATCH(req: NextRequest) {
               userId: order.buyerId,
               type: "payment",
               title: `Payment received — order ${ref}`,
-              body: `Your payment of GHS${updated.totalAmount.toFixed(2)} for ${updated.crop} is confirmed. Farmer contact unlocked: ${updated.farmerName} (${updated.farmerPhone}). They are starting delivery.`,
+              body: `Your payment of GHS${updated.totalAmount.toFixed(2)} for ${updated.crop} is confirmed. ${updated.farmerName} has been SMSed your name, phone, address and GPS — they will call you to arrange delivery. For anything call support 0595726252.`,
               link: "/orders",
             },
           });
