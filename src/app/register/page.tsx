@@ -346,7 +346,7 @@ function RegisterForm() {
             </div>
             <div>
               <label className="text-xs font-semibold uppercase text-gray-500">Password</label>
-              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none pr-12" required />
+              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" required />
             </div>
           </div>
           {role === "farmer" ? (
