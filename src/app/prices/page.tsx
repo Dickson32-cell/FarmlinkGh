@@ -28,7 +28,7 @@ export default function Prices() {
 
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-2xl font-bold text-[#1b5e20] mb-2">Today's Market Prices</h1>
-        <p className="text-gray-500 text-sm mb-6">Daily average prices across Ghana markets</p>
+                <p className="text-gray-500 text-sm mb-6">Live prices from FarmLink farmers — updated automatically whenever a farmer lists produce</p>
 
         <input type="text" placeholder="Search crop, market, region..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full p-2.5 border-2 border-gray-200 rounded-lg outline-none focus:border-[#43a047] mb-4" />
 
