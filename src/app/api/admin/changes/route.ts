@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest) {
       const { sendSms } = await import("@/lib/otp");
       await sendSms(
         request.user.phone,
-        `FarmLink: Your name change to ${request.newName} has been approved.`,
+        `FarmLink: Your name change to ${request.newName} has been approved. farmlinkghana.vercel.app`,
       ).catch(() => {});
 
       return NextResponse.json({ ok: true, applied: "name", newName: request.newName });
@@ -93,7 +93,7 @@ export async function PATCH(req: NextRequest) {
       const { sendSms } = await import("@/lib/otp");
       await sendSms(
         request.user.phone,
-        `FarmLink: Your new password has been approved. Use it next time you log in.`,
+        `FarmLink: Your new password has been approved. Use it next time you log in. farmlinkghana.vercel.app`,
       ).catch(() => {});
 
       return NextResponse.json({ ok: true, applied: "password" });
@@ -116,7 +116,7 @@ export async function PATCH(req: NextRequest) {
   const { sendSms } = await import("@/lib/otp");
   await sendSms(
     request.user.phone,
-    `FarmLink: Your ${request.kind === "name" ? "name" : "password"} change request was not approved. Contact 0595726252 if you need help.`,
+    `FarmLink: Your ${request.kind === "name" ? "name" : "password"} change was not approved. Call 0595726252. farmlinkghana.vercel.app`,
   ).catch(() => {});
 
   return NextResponse.json({ ok: true, applied: "rejected" });

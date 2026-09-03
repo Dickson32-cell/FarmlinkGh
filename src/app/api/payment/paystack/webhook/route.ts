@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
           // buyer side: your farmer contact for this purchase
           await sendSms(
             order.buyerPhone,
-            `FarmLink: Payment received for order ${ref} (${order.crop} x${order.quantity}). ${order.farmerName} has your delivery details and will call you to arrange delivery.`,
+            `FarmLink: Order ${ref} paid (${order.crop} x${order.quantity}). ${order.farmerName} has your delivery details and will call you. farmlinkghana.vercel.app`,
           );
           console.log(`[ORDER-RELAY] paid-order contact SMS sent to farmer ${order.farmerPhone} + buyer ${order.buyerPhone}`);
         } catch (err) {

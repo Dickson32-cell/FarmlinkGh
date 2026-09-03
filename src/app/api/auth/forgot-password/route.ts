@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const { code, network } = await createOtp(normalized, "reset");
-      const smsText = `FarmLink: Your password reset code is ${code}. Valid for 10 minutes. Do not share this code with anyone.`;
+      const smsText = `FarmLink: Your password reset code is ${code}. Valid for 10 minutes. Do not share it. farmlinkghana.vercel.app`;
       const { sent, provider } = await sendSms(normalized, smsText);
 
       return NextResponse.json({
