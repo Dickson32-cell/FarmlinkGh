@@ -34,6 +34,7 @@ interface Farmer {
 }
 
 import SiteHeader from "@/components/siteHeader";
+import StockBar from "@/components/stockBar";
 import NotificationBell from "@/components/notificationBell";
 
 export default function FarmerProfile() {
@@ -137,7 +138,8 @@ export default function FarmerProfile() {
                 <Link key={l.id} href={`/market/${l.id}`} className="flex items-center justify-between border-2 border-gray-100 rounded-xl p-4 hover:border-[#43a047] transition-colors">
                   <div>
                     <div className="font-bold">{l.crop}</div>
-                    <div className="text-xs text-gray-500">{l.quantity} bags · harvested {l.harvestDate}</div>
+                    <div className="mt-1"><StockBar compact remaining={(l as any).remaining ?? l.quantity} total={l.quantity} /></div>
+                      <div className="text-xs text-gray-500">Harvest: {l.harvestDate}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-[#1b5e20]">GH₵{l.price.toLocaleString()}</div>

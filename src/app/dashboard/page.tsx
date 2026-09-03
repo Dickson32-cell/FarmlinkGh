@@ -9,6 +9,7 @@ interface User { id: string; name: string; role: string; phone: string; }
 interface Listing { id: string; crop: string; quantity: number; price: number; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes: string | null; images: string; farmer?: { name: string; phone: string; }; }
 
 import SiteHeader from "@/components/siteHeader";
+import StockBar from "@/components/stockBar";
 import NotificationBell from "@/components/notificationBell";
 
 export default function Dashboard() {
@@ -274,7 +275,7 @@ export default function Dashboard() {
                     <td className="p-3 font-semibold">{l.crop}</td>
                     {user.role !== "farmer" && <td className="p-3">{l.farmer?.name || "—"}</td>}
                     <td className="p-3">{l.location}, {l.region}</td>
-                    <td className="p-3">{l.status === "available" ? `${(l as any).remaining ?? l.quantity} of ${l.quantity} bags left` : `${l.quantity} bags`}</td>
+                    <td className="p-3"><StockBar compact remaining={(l as any).remaining ?? l.quantity} total={l.quantity} /></td>
                     <td className="p-3">GH₵{l.price.toLocaleString()}</td>
                     <td className="p-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${l.status === "available" ? "bg-green-50 text-green-600" : l.status === "reserved" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600"}`}>{l.status}</span>

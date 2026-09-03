@@ -42,6 +42,7 @@ function Stars({ rating, size = "text-sm" }: { rating: number; size?: string }) 
 }
 
 import SiteHeader from "@/components/siteHeader";
+import StockBar from "@/components/stockBar";
 import NotificationBell from "@/components/notificationBell";
 
 export default function ListingDetail() {
@@ -253,7 +254,7 @@ export default function ListingDetail() {
             <div className="text-3xl font-bold text-[#e65100] mb-4">GH₵{listing.price.toLocaleString()} <span className="text-sm text-gray-400">/ {listing.unit}</span></div>
 
             <div className="bg-white rounded-xl shadow border border-gray-200 p-5 mb-4 space-y-3">
-              <div className="flex justify-between"><span className="text-gray-500 text-sm">Quantity</span><span className="font-semibold">{remaining > 0 ? `${remaining} of ${listing.quantity} left` : "Sold out"} </span></div>
+              <div className="flex justify-between items-center"><span className="text-gray-500 text-sm">Quantity</span><StockBar remaining={remaining} total={listing.quantity} /></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm">Harvest Date</span><span className="font-semibold">{listing.harvestDate}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm">Posted</span><span className="font-semibold">{listing.postedDate}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm">Location</span><span className="font-semibold">{listing.location}, {listing.region}</span></div>
@@ -411,7 +412,7 @@ export default function ListingDetail() {
                       <div className="p-2.5">
                         <div className="font-semibold text-sm text-[#1b5e20] truncate">{o.crop}</div>
                         <div className="text-xs text-gray-500">GH₵{o.price.toLocaleString()} / {o.unit || "bag"}</div>
-                        <div className="text-[11px] text-gray-400">{o.remaining} of {o.quantity} left</div>
+                        <div className="mt-1"><StockBar compact remaining={o.remaining} total={o.quantity} /></div>
                       </div>
                     </Link>
                   );

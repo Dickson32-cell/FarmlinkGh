@@ -41,6 +41,11 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const avgRating = agg._avg.rating ? Math.round(agg._avg.rating * 10) / 10 : 0;
     const reviewCount = agg._count.rating || 0;
 
+    // PARTIAL STOCK: live remaining counts on the farmer's shop listings
+    const { remainingMap } = await import("@/lib/stock");
+    const stockMap = await remainingMap(listings.map((l: any) => ({ id: l.id, quantity: l.quantity })));
+    const listingsWithStock = listings.map((l: any) => ({ ...l, remaining: stockMap[l.id] ?? l.quantity }));
+
     // Contact unlock — POLICY (2026-09): farmer self + admin only.
     // Buyers never see the farmer's phone, paid or not (Jumia-style);
     // the farmer receives the buyer's details and initiates delivery.
@@ -61,7 +66,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
         avgRating,
         reviewCount,
       },
-      listings,
+      listings: listingsWithStock,
       reviews,
     });
   } catch (e: any) {

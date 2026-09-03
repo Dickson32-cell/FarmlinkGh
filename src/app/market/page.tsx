@@ -7,6 +7,7 @@ import { PriceInput, ProductInput } from "@/components/produceInputs";
 interface Listing { id: string; crop: string; quantity: number; price: number; grade: string; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes?: string; farmer?: { id?: string; name: string; phone: string; }; }
 
 import SiteHeader from "@/components/siteHeader";
+import StockBar from "@/components/stockBar";
 import NotificationBell from "@/components/notificationBell";
 
 export default function Market() {
@@ -291,9 +292,8 @@ export default function Market() {
                   return null;
                 })()}
                 <div className="text-xl font-bold text-[#1b5e20] mb-2">GH₵{l.price.toLocaleString()} <span className="text-xs text-gray-400">/ bag</span></div>
-                <div className="flex gap-3 text-xs text-gray-500 flex-wrap mb-2">
-                  <span>{l.status === "available" ? `${(l as any).remaining ?? l.quantity} of ${l.quantity} left` : `${l.quantity} bags`}</span><span> · {l.harvestDate}</span>
-                </div>
+                <div className="mb-2"><StockBar compact remaining={(l as any).remaining ?? l.quantity} total={l.quantity} /></div>
+                <div className="text-xs text-gray-400 mb-1">Harvest: {l.harvestDate}</div>
                 {l.notes && <div className="text-xs text-gray-400 mb-2"> {l.notes}</div>}
                 <Link href={`/market/${l.id}`} className="block text-center bg-[#1b5e20] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818] mt-2">View Details</Link>
                 {l.status === "available" && l.farmer && user?.role !== "farmer" && (
