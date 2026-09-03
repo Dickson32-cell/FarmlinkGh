@@ -125,8 +125,8 @@ export async function POST(req: NextRequest) {
             if (!matches || !b.user?.phone) continue;
 
             const msg = isFirst
-              ? `FarmLink: ${body.crop} is now on the market - GH₵${listing.price}/bag by ${farmer.name} in ${listing.region}. Login to buy: farmlinkghana.vercel.app`
-              : `FarmLink: Price drop! ${body.crop} now GH₵${listing.price}/bag (was GH₵${prevLowest}). By ${farmer.name} in ${listing.region}. farmlinkghana.vercel.app`;
+              ? `FarmLink: ${body.crop} is now on the market - GH₵${listing.price}/bag by ${farmer.name} in ${listing.region}. Login to buy: farmlinkgh.app`
+              : `FarmLink: Price drop! ${body.crop} now GH₵${listing.price}/bag (was GH₵${prevLowest}). By ${farmer.name} in ${listing.region}. farmlinkgh.app`;
             await sendSms(b.user.phone, msg).catch(() => { });
             // throttle: tiny pause avoids hammering the SMS API
             await new Promise((r) => setTimeout(r, 50));

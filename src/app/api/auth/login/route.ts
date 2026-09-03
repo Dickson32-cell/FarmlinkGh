@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
     await prisma.otpCode.create({ data: { phone: normalizedPhone, codeHash, purpose: "login", expiresAt } });
 
     const masked = normalizedPhone.slice(0, 4) + "****" + normalizedPhone.slice(-3);
-    const smsText = `FarmLink: Your login code is ${code}. Valid for 10 minutes. Do not share it. farmlinkghana.vercel.app`;
+    const smsText = `FarmLink: Your login code is ${code}. Valid for 10 minutes. Do not share it. farmlinkgh.app`;
     const { sent, provider } = await sendSms(normalizedPhone, smsText);
 
     if (provider === "console") {

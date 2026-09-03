@@ -65,7 +65,7 @@ export default function Notifications() {
       <div className="max-w-3xl mx-auto p-6">
         <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
           <h1 className="text-2xl font-bold text-[#1b5e20]">Notifications</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {items.some((n) => !n.read) && (
               <button onClick={markAllRead} className="bg-white border border-gray-200 text-gray-600 px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-50 shadow-sm">
                 Mark all read

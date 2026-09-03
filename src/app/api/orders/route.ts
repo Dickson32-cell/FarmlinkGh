@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
       const ref = order.id.slice(-8).toUpperCase();
       await sendSms(
         listing.farmer.phone,
-        `FarmLink: New order ${ref} - ${buyer?.name || "a buyer"} wants ${quantity} bag(s) of ${listing.crop} at GHS${listing.price}/bag. They will pay now. farmlinkghana.vercel.app`,
+        `FarmLink: New order ${ref} - ${buyer?.name || "a buyer"} wants ${quantity} bag(s) of ${listing.crop} at GHS${listing.price}/bag. They will pay now. farmlinkgh.app`,
       );
       console.log(`[ORDER-RELAY] SMS sent to farmer ${listing.farmer.phone} for order ${ref}`);
     } catch (err) {
@@ -223,7 +223,7 @@ export async function PATCH(req: NextRequest) {
           );
           await sendSms(
             updated.buyerPhone,
-            `FarmLink: Order ${ref} paid (${updated.crop} x${updated.quantity}). ${updated.farmerName} has your delivery details and will call you. farmlinkghana.vercel.app`,
+            `FarmLink: Order ${ref} paid (${updated.crop} x${updated.quantity}). ${updated.farmerName} has your delivery details and will call you. farmlinkgh.app`,
           );
         } catch (err) {
           console.error("[PAYMENT-RELAY] paid SMS failed:", String(err).slice(0, 120));
@@ -235,7 +235,7 @@ export async function PATCH(req: NextRequest) {
         // tell the farmer someone disputed their product
         const { sendSms } = await import("@/lib/otp");
         await sendSms(order.farmerPhone,
-          `FarmLink: A refund was requested by ${order.buyerName} for order of ${order.crop} (${order.quantity} bags). Admin will review within 2-3 days. farmlinkghana.vercel.app`)
+          `FarmLink: A refund was requested by ${order.buyerName} for order of ${order.crop} (${order.quantity} bags). Admin will review within 2-3 days. farmlinkgh.app`)
           .catch(() => { });
       }
       if (status === "refunded") {
@@ -246,8 +246,8 @@ export async function PATCH(req: NextRequest) {
         const { sendSms } = await import("@/lib/otp");
         await sendSms(order.buyerPhone,
           deduction > 0
-            ? `FarmLink: Refund of GHS${actual.toFixed(2)} sent for ${order.crop} (GHS${deduction.toFixed(2)} damage deduction applied). Arrives within 24h. farmlinkghana.vercel.app`
-            : `FarmLink: Your full refund of GHS${actual.toFixed(2)} for ${order.crop} has been sent. Arrives within 24h. farmlinkghana.vercel.app`)
+            ? `FarmLink: Refund of GHS${actual.toFixed(2)} sent for ${order.crop} (GHS${deduction.toFixed(2)} damage deduction applied). Arrives within 24h. farmlinkgh.app`
+            : `FarmLink: Your full refund of GHS${actual.toFixed(2)} for ${order.crop} has been sent. Arrives within 24h. farmlinkgh.app`)
           .catch(() => { });
         try {
           await prisma.listing.update({
@@ -345,7 +345,7 @@ export async function PATCH(req: NextRequest) {
         try {
           const { sendSms } = await import("@/lib/otp");
           await sendSms(order.buyerPhone,
-            `FarmLink: Delivery confirmed for ${order.crop} x${order.quantity}. You have 3 days to request a refund if it falls short. farmlinkghana.vercel.app`)
+            `FarmLink: Delivery confirmed for ${order.crop} x${order.quantity}. You have 3 days to request a refund if it falls short. farmlinkgh.app`)
             .catch(() => { });
         } catch { /* non-fatal */ }
 
@@ -408,7 +408,7 @@ export async function PATCH(req: NextRequest) {
         // Notify farmer + admin
         const { sendSms } = await import("@/lib/otp");
         await sendSms(order.farmerPhone,
-          `FarmLink: ${order.buyerName} requested a refund for ${order.crop} (${order.quantity} bags). Admin will review within 2-3 days. farmlinkghana.vercel.app`)
+          `FarmLink: ${order.buyerName} requested a refund for ${order.crop} (${order.quantity} bags). Admin will review within 2-3 days. farmlinkgh.app`)
           .catch(() => { });
         await sendSms(process.env.ADMIN_MOMO || "0248847819",
           `FarmLink ADMIN: Refund requested — order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GH₵${order.totalAmount.toFixed(2)}). Review in admin panel.`)

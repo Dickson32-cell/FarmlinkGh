@@ -290,7 +290,7 @@ export default function ListingDetail() {
                 <div className="flex justify-between"><span className="text-gray-500 text-sm">Main Crops</span><span className="font-semibold text-right">{listing.farmer.mainCrops}</span></div>
               </div>
               {(user?.role === "farmer" || user?.role === "admin") && listing.status === "available" && (
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                   <a href={`https://wa.me/233${listing.farmer.phone.replace(/^0/, "")}`} target="_blank" className="flex-1 bg-green-600 text-white text-center py-3 rounded-lg font-semibold hover:bg-green-700">WhatsApp</a>
                   <a href={`tel:${listing.farmer.phone}`} className="flex-1 bg-[#1b5e20] text-white text-center py-3 rounded-lg font-semibold hover:bg-[#0d3818]">Call</a>
                 </div>

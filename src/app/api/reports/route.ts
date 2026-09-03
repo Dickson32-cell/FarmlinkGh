@@ -111,7 +111,7 @@ export async function PATCH(req: NextRequest) {
       const { sendSms } = await import("@/lib/otp");
       await sendSms(
         report.reporterPhone,
-        `FarmLink: Your report has been reviewed and resolved. Thank you for keeping FarmLink safe. farmlinkghana.vercel.app`,
+        `FarmLink: Your report has been reviewed and resolved. Thank you for keeping FarmLink safe. farmlinkgh.app`,
       );
     } catch { /* non-fatal */ }
   }

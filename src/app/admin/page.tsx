@@ -18,7 +18,7 @@ interface Order {
   status: string; adminNote: string | null; hubtelTxId: string | null; createdAt: string;
 }
 
-import HeaderBanner from "@/components/headerBanner";
+import SiteHeader from "@/components/siteHeader";
 import RefundControls from "@/components/refundControls";
 
 // headerImage setting holds a JSON array of URLs (slideshow) or a single
@@ -430,17 +430,10 @@ export default function Admin() {
         </div>
       )}
 
-      <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-40">
-          <HeaderBanner />
-        <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Admin</span></div>
-        <div className="flex gap-2">
-          <Link href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</Link>
-          <Link href="/prices" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#1565c0] hover:bg-[#0d47a1] text-white">Prices</Link>
-          <button onClick={() => { fetch("/api/auth/logout", { method: "POST" }).then(() => router.push("/")); }} className="bg-red-600/70 px-3 py-1.5 rounded-lg text-sm hover:bg-red-600">Logout</button>
-        </div>
-      </header>
+      <SiteHeader title="Admin" user={{ role: "admin" }} />
 
       <div className="max-w-6xl mx-auto p-6">
+        <div className="flex justify-end mb-2"><button onClick={() => { fetch("/api/auth/logout", { method: "POST" }).then(() => router.push("/")); }} className="bg-red-600/70 px-3 py-1.5 rounded-lg text-sm hover:bg-red-600">Logout</button></div>
         <h1 className="text-2xl font-bold text-[#1b5e20] mb-6">Admin Dashboard</h1>
 
         {/* Stats */}
@@ -593,7 +586,7 @@ export default function Admin() {
                 onChange={(e) => setBcMessage(e.target.value)}
                 rows={3}
                 maxLength={220}
-                placeholder="e.g. Fresh maize now on FarmLink from GHS 100/bag in Koforidua. Order today: farmlinkghana.vercel.app"
+                placeholder="e.g. Fresh maize now on FarmLink from GHS 100/bag in Koforidua. Order today: farmlinkgh.app"
                 className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none"
               />
               <div className={`text-xs mt-1 font-semibold ${bcLength.overLimit ? "text-red-600" : "text-gray-500"}`}>
@@ -714,7 +707,7 @@ export default function Admin() {
                         <div>New password requested (hidden for security). Approving replaces the current password.</div>
                       )}
                     </div>
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex gap-2 mt-3 flex-wrap">
                       <button
                         onClick={() => handleChangeRequest(cr.id, "approve")}
                         className="flex-1 bg-[#1b5e20] text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-[#0d3818]"

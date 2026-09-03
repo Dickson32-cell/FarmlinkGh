@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
           );
           await sendSms(
             order.buyerPhone,
-            `FarmLink: Order ${ref} paid (${order.crop} x${order.quantity}). ${order.farmerName} has your delivery details and will call you. farmlinkghana.vercel.app`,
+            `FarmLink: Order ${ref} paid (${order.crop} x${order.quantity}). ${order.farmerName} has your delivery details and will call you. farmlinkgh.app`,
           );
         } catch (err) {
           console.error("[PAYMENT-RELAY] verify-path paid SMS failed:", String(err).slice(0, 120));

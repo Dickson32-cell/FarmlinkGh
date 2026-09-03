@@ -165,7 +165,7 @@ export default function Orders() {
         </p>
 
         {/* Active / History tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => setOrderTab("active")}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${orderTab === "active" ? "bg-[#1b5e20] text-white shadow-sm" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}

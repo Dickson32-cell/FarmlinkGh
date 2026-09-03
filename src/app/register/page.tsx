@@ -297,7 +297,7 @@ function RegisterForm() {
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <button
               type="button"
               onClick={() => setStep(1)}
