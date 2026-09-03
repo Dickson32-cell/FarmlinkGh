@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 interface Price { id: string; crop: string; market: string; region: string; lowPrice: number; highPrice: number; trend: string; date: string; }
 
-import HeaderBanner from "@/components/headerBanner";
+import SiteHeader from "@/components/siteHeader";
 import NotificationBell from "@/components/notificationBell";
 
 export default function Prices() {
@@ -22,15 +22,7 @@ export default function Prices() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <HeaderBanner />
-        <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Price Board</span></div>
-        <div className="flex gap-2">
-          <NotificationBell />
-          <a href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</a>
-          <a href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</a>
-        </div>
-      </header>
+      <SiteHeader title="Price Board" links={[{ href: "/dashboard", label: "Dashboard", color: "neutral" }, { href: "/market", label: "Market", color: "orange" }]} />
 
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-2xl font-bold text-[#1b5e20] mb-2">Today's Market Prices</h1>

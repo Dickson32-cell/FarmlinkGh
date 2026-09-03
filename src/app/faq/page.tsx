@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import SiteHeader from "@/components/siteHeader";
 import { useState } from "react";
 
 interface QA { q: string; a: React.ReactNode }
@@ -146,13 +147,7 @@ export default function FAQ() {
 
   return (
     <div className="min-h-screen bg-[#f8faf7]">
-      <header className="bg-[#1b5e20] text-white px-6 py-3.5 flex items-center justify-between sticky top-0 z-50 shadow-md">
-        <Link href="/" className="text-xl font-bold flex items-center gap-2">
-          <img src="/logo.jpg" alt="FarmLink" className="w-9 h-9 rounded-full ring-2 ring-white/30" />
-          FarmLink <span className="opacity-70 text-sm font-normal">Ghana</span>
-        </Link>
-        <Link href="/support" className="bg-white/15 px-4 py-2 rounded-lg text-sm hover:bg-white/25">Support</Link>
-      </header>
+      <SiteHeader  />
 
       <div className="max-w-3xl mx-auto px-6 py-10">
         <h1 className="text-3xl font-extrabold text-[#1b5e20] mb-2">Frequently Asked Questions</h1>

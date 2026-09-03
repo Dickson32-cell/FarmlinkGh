@@ -8,7 +8,7 @@ import { PriceInput, ProductInput } from "@/components/produceInputs";
 interface User { id: string; name: string; role: string; phone: string; }
 interface Listing { id: string; crop: string; quantity: number; price: number; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes: string | null; images: string; farmer?: { name: string; phone: string; }; }
 
-import HeaderBanner from "@/components/headerBanner";
+import SiteHeader from "@/components/siteHeader";
 import NotificationBell from "@/components/notificationBell";
 
 export default function Dashboard() {
@@ -143,20 +143,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <HeaderBanner />
-        <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">{user.name}</span></div>
-        <div className="flex gap-2">
-          {user.role !== "farmer" && <Link href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>}
-          <Link href="/prices" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#1565c0] hover:bg-[#0d47a1] text-white">Prices</Link>
-          <NotificationBell />
-          <Link href="/profile" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#7b1fa2] hover:bg-[#6a1b9a] text-white">Profile</Link>
-          {user.role === "buyer" && <Link href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">My Orders</Link>}
-          {user.role === "farmer" && <Link href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">Orders to Deliver</Link>}
-          {user.role === "admin" && <Link href="/admin" className="bg-[#e65100] px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#ff6f00]">Admin Panel</Link>}
-          <button onClick={logout} className="bg-red-600/70 px-3 py-1.5 rounded-lg text-sm hover:bg-red-600">Logout</button>
-        </div>
-      </header>
+      <SiteHeader user={user} />
 
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-2xl font-bold text-[#1b5e20] mb-6">Dashboard</h1>

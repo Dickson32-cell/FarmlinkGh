@@ -115,7 +115,7 @@ export default function Home() {
       </section>
 
       {/* Stats */}
-      <section className="max-w-4xl mx-auto -mt-10 bg-white rounded-2xl shadow-xl p-6 grid grid-cols-3 gap-4 text-center relative z-10 border border-gray-100">
+      <section className="max-w-4xl mx-auto -mt-10 bg-white rounded-2xl shadow-xl p-4 sm:p-6 grid grid-cols-3 gap-3 sm:gap-4 text-center relative z-10 border border-gray-100">
         <div>
           <div className="text-3xl font-extrabold text-[#1b5e20]">{stats.farmers}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wide mt-1">Farmers</div>

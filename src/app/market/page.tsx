@@ -6,7 +6,7 @@ import { PriceInput, ProductInput } from "@/components/produceInputs";
 
 interface Listing { id: string; crop: string; quantity: number; price: number; grade: string; region: string; location: string; status: string; postedDate: string; harvestDate: string; notes?: string; farmer?: { id?: string; name: string; phone: string; }; }
 
-import HeaderBanner from "@/components/headerBanner";
+import SiteHeader from "@/components/siteHeader";
 import NotificationBell from "@/components/notificationBell";
 
 export default function Market() {
@@ -141,17 +141,7 @@ export default function Market() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <HeaderBanner />
-        <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Market</span></div>
-        <div className="flex gap-2 items-center">
-          {user?.role === "buyer" && (<a href="/wishlist" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#7b1fa2] hover:bg-[#6a1b9a] text-white">Wishlist</a>)}
-          {user?.role !== "farmer" && user && (<a href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">My Orders</a>)}
-          <NotificationBell />
-          <a href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</a>
-          <a href="/prices" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#1565c0] hover:bg-[#0d47a1] text-white">Prices</a>
-        </div>
-      </header>
+      <SiteHeader title="Market" user={user} />
 
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex justify-between items-center mb-6 flex-wrap gap-3">

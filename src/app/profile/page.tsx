@@ -5,7 +5,7 @@ import Link from "next/link";
 import PasswordInput from "@/components/passwordInput";
 import { ghanaRegions, ghanaTowns } from "@/lib/ghana-data";
 
-import HeaderBanner from "@/components/headerBanner";
+import SiteHeader from "@/components/siteHeader";
 import NotificationBell from "@/components/notificationBell";
 
 export default function Profile() {
@@ -135,16 +135,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-[#f8faf7]">
-      <header className="bg-[#1b5e20] text-white px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <HeaderBanner />
-        <div className="text-lg font-bold"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink <span className="opacity-70 text-sm">Profile</span></div>
-        <div className="flex gap-2">
-          {user?.role !== "farmer" && user && (<a href="/orders" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]">My Orders</a>)}
-          <NotificationBell />
-          <Link href="/dashboard" className="bg-white/15 px-3 py-1.5 rounded-lg text-sm hover:bg-white/25">Dashboard</Link>
-          <Link href="/market" className="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-[#ef6c00] hover:bg-[#e65100] text-white">Market</Link>
-        </div>
-      </header>
+      <SiteHeader user={user} />
 
       <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-2xl font-bold text-[#1b5e20] mb-6">Edit Profile</h1>
@@ -181,7 +172,7 @@ export default function Profile() {
           {/* Account info — name/password changes need admin approval */}
           <div className="bg-white rounded-xl shadow border border-gray-200 p-5">
             <h2 className="font-bold text-[#1b5e20] mb-4">Account Info</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-semibold uppercase text-gray-500">Full Name</label>
                 <input type="text" value={user.name || ""} disabled className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 bg-gray-50 text-gray-500" />
@@ -228,7 +219,7 @@ export default function Profile() {
           {user.role === "farmer" && profile && (
             <div className="bg-white rounded-xl shadow border border-gray-200 p-5 space-y-4">
               <h2 className="font-bold text-[#1b5e20]">Farm Details</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
                   <select value={profile.region || ""} onChange={(e) => setProfile({ ...profile, region: e.target.value })} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]">
@@ -244,7 +235,7 @@ export default function Profile() {
                   </datalist>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Farm Size (acres)</label>
                   <input type="number" step="0.1" value={profile.farmSize || 0} onChange={(e) => setProfile({ ...profile, farmSize: parseFloat(e.target.value) || 0 })} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" />
@@ -260,7 +251,7 @@ export default function Profile() {
           {user.role === "buyer" && profile && (
             <div className="bg-white rounded-xl shadow border border-gray-200 p-5 space-y-4">
               <h2 className="font-bold text-[#1b5e20]">Business Details</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Business Type</label>
                   <select value={profile.businessType || ""} onChange={(e) => setProfile({ ...profile, businessType: e.target.value })} className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]">
@@ -275,7 +266,7 @@ export default function Profile() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Town</label>
                   <input type="text" list="buyer-profile-town-list" value={profile.location || ""} onChange={(e) => setProfile({ ...profile, location: e.target.value })} placeholder="Select or type your town" className="w-full p-2.5 border-2 border-gray-200 rounded-lg mt-1 outline-none focus:border-[#43a047]" />

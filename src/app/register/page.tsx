@@ -192,7 +192,7 @@ function RegisterForm() {
           {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
 
           {/* ID type toggle */}
-          <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
             <button
               type="button"
               onClick={() => { setIdType("ghana-card"); setError(""); }}
@@ -331,7 +331,7 @@ function RegisterForm() {
         <p className="text-sm text-gray-500 text-center mb-6">Create your account — Step 1 of 2</p>
         {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button type="button" onClick={() => setRole("farmer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "farmer" ? "border-[#1b5e20] bg-[#e8f5e9] text-[#1b5e20]" : "border-gray-200 text-gray-500"}`}>Farmer</button>
             <button type="button" onClick={() => setRole("buyer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "buyer" ? "border-[#e65100] bg-[#fff3e0] text-[#e65100]" : "border-gray-200 text-gray-500"}`}>Buyer</button>
           </div>
@@ -339,7 +339,7 @@ function RegisterForm() {
             <label className="text-xs font-semibold uppercase text-gray-500">Full Name</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="As shown on your Ghana Card" className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" required />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold uppercase text-gray-500">Phone</label>
               <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0244..." className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" required />
@@ -351,7 +351,7 @@ function RegisterForm() {
           </div>
           {role === "farmer" ? (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Region</label>
                   <select value={region} onChange={(e) => setRegion(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none">
@@ -364,7 +364,7 @@ function RegisterForm() {
                   <datalist id="reg-town-list">{(ghanaTowns[region] || []).map((t) => <option key={t} value={t} />)}</datalist>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Farm Size (acres)</label>
                   <input type="number" value={farmSize} onChange={(e) => setFarmSize(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" />
@@ -377,7 +377,7 @@ function RegisterForm() {
             </>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Business Type</label>
                   <select value={businessType} onChange={(e) => setBusinessType(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none">
@@ -391,7 +391,7 @@ function RegisterForm() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Town</label>
                   <input type="text" list="buyer-town-list" value={town} onChange={(e) => setTown(e.target.value)} placeholder="Select or type your town" className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none" />
