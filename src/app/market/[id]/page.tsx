@@ -47,6 +47,8 @@ import NotificationBell from "@/components/notificationBell";
 export default function ListingDetail() {
   const { id } = useParams();
   const [listing, setListing] = useState<Listing | null>(null);
+  const [remaining, setRemaining] = useState<number>(0);
+  const [farmerOtherListings, setFarmerOtherListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -82,6 +84,8 @@ export default function ListingDetail() {
       .then((r) => r.json())
       .then((data) => {
         setListing(data);
+        setRemaining(typeof data.remaining === "number" ? data.remaining : data.quantity);
+        setFarmerOtherListings(data.farmerOtherListings || []);
         setLoading(false);
         if (data.farmer?.id) {
           fetch(`/api/reviews?farmerId=${data.farmer.id}`)
@@ -249,7 +253,7 @@ export default function ListingDetail() {
             <div className="text-3xl font-bold text-[#e65100] mb-4">GH₵{listing.price.toLocaleString()} <span className="text-sm text-gray-400">/ {listing.unit}</span></div>
 
             <div className="bg-white rounded-xl shadow border border-gray-200 p-5 mb-4 space-y-3">
-              <div className="flex justify-between"><span className="text-gray-500 text-sm">Quantity</span><span className="font-semibold">{listing.quantity} {listing.unit}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500 text-sm">Quantity</span><span className="font-semibold">{remaining > 0 ? `${remaining} of ${listing.quantity} left` : "Sold out"} </span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm">Harvest Date</span><span className="font-semibold">{listing.harvestDate}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm">Posted</span><span className="font-semibold">{listing.postedDate}</span></div>
               <div className="flex justify-between"><span className="text-gray-500 text-sm">Location</span><span className="font-semibold">{listing.location}, {listing.region}</span></div>
@@ -333,7 +337,7 @@ export default function ListingDetail() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <label className="text-sm font-semibold">Quantity (bags):</label>
-                      <input type="number" min={1} max={listing.quantity} value={buyQty} onChange={(e) => setBuyQty(Math.min(Math.max(1, parseInt(e.target.value) || 1), listing.quantity))} className="w-24 p-2 border-2 border-gray-200 rounded-lg outline-none focus:border-[#43a047]" />
+                      <input type="number" min={1} max={remaining} value={buyQty} onChange={(e) => setBuyQty(Math.min(Math.max(1, parseInt(e.target.value) || 1), listing.quantity))} className="w-24 p-2 border-2 border-gray-200 rounded-lg outline-none focus:border-[#43a047]" />
                       <span className="text-sm text-gray-500">of {listing.quantity} available</span>
                     </div>
                     {/* Delivery location — the farmer delivers here */}
@@ -388,7 +392,35 @@ export default function ListingDetail() {
         </div>{/* end grid */}
 
         {/* Reviews Section */}
-        <div className="mt-10">
+        {farmerOtherListings.length > 0 && listing?.farmer?.id && (
+            <div className="bg-white rounded-xl shadow border border-gray-200 p-5 mb-6">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h2 className="font-bold text-[#1b5e20]">More from this farmer</h2>
+                <Link href={`/farmer/${listing.farmer.id}`} className="text-xs text-[#1565c0] font-semibold hover:underline">View full profile →</Link>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {farmerOtherListings.map((o) => {
+                  const imgs: string[] = (() => { try { return JSON.parse(o.images || "[]"); } catch { return []; } })();
+                  return (
+                    <Link key={o.id} href={`/market/${o.id}`} className="border border-gray-200 rounded-xl overflow-hidden hover:border-[#43a047] transition-colors group">
+                      {imgs[0] ? (
+                        <img src={imgs[0]} alt={o.crop} className="w-full h-24 object-cover group-hover:scale-105 transition-transform" />
+                      ) : (
+                        <div className="w-full h-24 bg-[#f6fbf6] flex items-center justify-center text-gray-400 text-xs">No photo</div>
+                      )}
+                      <div className="p-2.5">
+                        <div className="font-semibold text-sm text-[#1b5e20] truncate">{o.crop}</div>
+                        <div className="text-xs text-gray-500">GH₵{o.price.toLocaleString()} / {o.unit || "bag"}</div>
+                        <div className="text-[11px] text-gray-400">{o.remaining} of {o.quantity} left</div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-[#1b5e20]">Farmer Reviews</h2>
             {user?.role === "buyer" && (

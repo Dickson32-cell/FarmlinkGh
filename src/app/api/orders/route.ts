@@ -53,6 +53,23 @@ export async function POST(req: NextRequest) {
     if (listing.status !== "available")
       return NextResponse.json({ error: "This listing is no longer available" }, { status: 400 });
 
+    // ── PARTIAL STOCK: validate against what's actually left ──
+    // A 10-bag listing can sell 2 bags and stay on the market with 8 left.
+    // Pending/paid/delivered/refund_requested orders all hold bags, so two
+    // buyers can never pay for the same last bags.
+    const { remainingFor } = await import("@/lib/stock");
+    const remaining = await remainingFor(listing.id, listing.quantity);
+    const qty = Number(quantity);
+    if (!Number.isInteger(qty) || qty < 1)
+      return NextResponse.json({ error: "Quantity must be a whole number of at least 1" }, { status: 400 });
+    if (qty > remaining)
+      return NextResponse.json(
+        remaining > 0
+          ? { error: `Only ${remaining} bag(s) of this ${listing.crop} left` }
+          : { error: "This produce is sold out" },
+        { status: 400 },
+      );
+
     const buyer = await prisma.buyer.findUnique({ where: { userId: session.userId } });
 
     // Delivery location: checkout value wins; else the buyer's saved default
@@ -250,25 +267,38 @@ export async function PATCH(req: NextRequest) {
             : `FarmLink: Your full refund of GHS${actual.toFixed(2)} for ${order.crop} has been sent. Arrives within 24h. farmlinkgh.app`)
           .catch(() => { });
         try {
-          await prisma.listing.update({
-            where: { id: order.listingId },
-            data: { status: "available" },
-          });
+          // Refund returns the bags: recompute remaining and lift "sold" if
+          // stock is back (partial stock — refunded bags go back on the market)
+          const { remainingFor, statusForRemaining } = await import("@/lib/stock");
+          const listingRow = await prisma.listing.findUnique({ where: { id: order.listingId } });
+          if (listingRow) {
+            const remaining = await remainingFor(listingRow.id, listingRow.quantity);
+            await prisma.listing.update({
+              where: { id: order.listingId },
+              data: { status: statusForRemaining(listingRow.status, remaining) },
+            });
+          }
         } catch (e) {
           console.error(`listing restore skipped for order ${id}:`, String(e).slice(0, 100));
         }
       }
 
-      // If released, mark the listing as sold (non-fatal — legacy orders may
-      // reference listings that no longer exist; the money event is the order)
+      // If released, the listing is sold ONLY if the last bag went — with
+      // partial stock a 10-bag listing that sold 8 still has 2 available.
+      // (non-fatal — legacy orders may reference listings that no longer exist)
       if (status === "released") {
         try {
-          await prisma.listing.update({
-            where: { id: order.listingId },
-            data: { status: "sold" },
-          });
+          const { remainingFor, statusForRemaining } = await import("@/lib/stock");
+          const listingRow = await prisma.listing.findUnique({ where: { id: order.listingId } });
+          if (listingRow) {
+            const remaining = await remainingFor(listingRow.id, listingRow.quantity);
+            await prisma.listing.update({
+              where: { id: order.listingId },
+              data: { status: statusForRemaining(listingRow.status, remaining) },
+            });
+          }
         } catch (e) {
-          console.error(`listing mark-sold skipped for order ${id}:`, String(e).slice(0, 120));
+          console.error(`listing status update skipped for order ${id}:`, String(e).slice(0, 120));
         }
       }
 

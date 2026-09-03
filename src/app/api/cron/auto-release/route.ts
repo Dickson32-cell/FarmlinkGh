@@ -76,12 +76,17 @@ async function runJob() {
       where: { id: order.id },
       data: { status: "released", autoReleased: true },
     });
-    // Mark listing sold (non-fatal — legacy orders may reference removed listings)
+    // Listing is sold only if the last bag went (partial stock — non-fatal)
     try {
-      await prisma.listing.update({
-        where: { id: order.listingId },
-        data: { status: "sold" },
-      });
+      const { remainingFor, statusForRemaining } = await import("@/lib/stock");
+      const listingRow = await prisma.listing.findUnique({ where: { id: order.listingId } });
+      if (listingRow) {
+        const remaining = await remainingFor(listingRow.id, listingRow.quantity);
+        await prisma.listing.update({
+          where: { id: order.listingId },
+          data: { status: statusForRemaining(listingRow.status, remaining) },
+        });
+      }
     } catch (e) {
       console.error(`listing update failed for ${order.listingId}:`, e);
     }

@@ -45,6 +45,10 @@ export async function GET(req: NextRequest) {
     paidListingIds = new Set(paidOrders.map((o) => o.listingId));
   }
 
+  // PARTIAL STOCK: attach live remaining-bag counts to every listing
+  const { remainingMap } = await import("@/lib/stock");
+  const remaining = await remainingMap(listings.map((l: any) => ({ id: l.id, quantity: l.quantity })));
+
   const masked = listings.map((l: any) => {
     // Buyers never see farmer phones (farmer initiates contact after payment).
   const unlocked = isFarmerOrAdmin;
@@ -52,6 +56,7 @@ export async function GET(req: NextRequest) {
       ...l,
       farmer: l.farmer ? { ...l.farmer, phone: unlocked ? l.farmer.phone : "" } : l.farmer,
       contactUnlocked: unlocked,
+      remaining: remaining[l.id] ?? l.quantity,
     };
   });
 

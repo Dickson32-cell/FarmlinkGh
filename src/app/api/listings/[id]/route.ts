@@ -26,11 +26,32 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     }
   }
 
+  // PARTIAL STOCK: how many bags are left on this listing
+  const { remainingFor } = await import("@/lib/stock");
+  const remaining = await remainingFor(listing.id, listing.quantity);
+
+  // FARMER SHOP: this farmer's OTHER available listings so the buyer can
+  // browse everything they sell from one product page
+  const otherListings = await prisma.listing.findMany({
+    where: { farmerId: listing.farmerId, id: { not: listing.id }, status: "available" },
+    select: { id: true, crop: true, price: true, unit: true, quantity: true, region: true, location: true, images: true, status: true },
+    orderBy: { createdAt: "desc" },
+    take: 12,
+  });
+  const otherRemaining = await import("@/lib/stock").then((m) =>
+    m.remainingMap(otherListings.map((l) => ({ id: l.id, quantity: l.quantity })))
+  );
+
   return NextResponse.json({
     ...listing,
     farmer: listing.farmer
       ? { ...listing.farmer, phone: contactUnlocked ? listing.farmer.phone : "" }
       : listing.farmer,
     contactUnlocked,
+    remaining,
+    farmerOtherListings: otherListings.map((l: any) => ({
+      ...l,
+      remaining: otherRemaining[l.id] ?? l.quantity,
+    })),
   });
 }
