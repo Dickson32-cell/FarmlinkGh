@@ -108,7 +108,7 @@ export async function sendSms(phone: string, rawMessage: string): Promise<{ sent
   try {
     if (provider === "arkesel") {
       const apiKey = process.env.ARKESEL_API_KEY;
-      const sender = process.env.ARKESEL_SENDER_ID || "FarmLink";
+      const sender = process.env.ARKESEL_SENDER_ID || "FarmLinkGh";
       const res = await fetch("https://sms.arkesel.com/api/v2/sms/send", {
         method: "POST",
         headers: {
