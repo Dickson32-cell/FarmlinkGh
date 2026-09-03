@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HeaderBanner from "@/components/headerBanner";
 import NotificationBell from "@/components/notificationBell";
@@ -71,8 +72,17 @@ export default function SiteHeader({
   hideBell?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const nav = links || linksForRole(user?.role);
   const showBell = !hideBell && !!user;
+
+  // Logout: clears the session cookie and returns to the homepage.
+  // One button here serves EVERY logged-in page (desktop bar + mobile menu).
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <header className="bg-[#1b5e20] text-white sticky top-0 z-50 shadow-md">
@@ -95,6 +105,16 @@ export default function SiteHeader({
               {l.label}
             </Link>
           ))}
+          {user && (
+            <button
+              type="button"
+              onClick={logout}
+              title={`Sign out${user?.name ? ` (${user.name})` : ""}`}
+              className="ml-1 px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-red-700 hover:bg-red-800 text-white"
+            >
+              Logout
+            </button>
+          )}
         </nav>
 
         {/* Mobile: bell + hamburger */}
@@ -133,6 +153,15 @@ export default function SiteHeader({
                 {l.label}
               </Link>
             ))}
+            {user && (
+              <button
+                type="button"
+                onClick={() => { setOpen(false); logout(); }}
+                className="px-4 py-3 rounded-lg text-sm font-semibold shadow-sm transition-colors bg-red-700 hover:bg-red-800 text-white text-left"
+              >
+                Logout{user?.name ? ` — ${user.name}` : ""}
+              </button>
+            )}
           </div>
         </nav>
       )}

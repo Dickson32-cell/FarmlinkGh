@@ -8,9 +8,11 @@ import NotificationBell from "@/components/notificationBell";
 
 export default function Prices() {
   const [prices, setPrices] = useState<Price[]>([]);
+  const [headerUser, setHeaderUser] = useState<{ role?: string; name?: string } | null>(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => setHeaderUser(d.user || null)).catch(() => {});
     fetch("/api/prices").then((r) => r.json()).then(setPrices).catch(() => { });
   }, []);
 
@@ -22,7 +24,7 @@ export default function Prices() {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader title="Price Board" links={[{ href: "/dashboard", label: "Dashboard", color: "neutral" }, { href: "/market", label: "Market", color: "orange" }]} />
+      <SiteHeader title="Price Board" user={headerUser} links={[{ href: "/dashboard", label: "Dashboard", color: "neutral" }, { href: "/market", label: "Market", color: "orange" }]} />
 
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-2xl font-bold text-[#1b5e20] mb-2">Today's Market Prices</h1>
