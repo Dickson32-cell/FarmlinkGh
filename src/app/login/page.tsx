@@ -130,7 +130,7 @@ export default function Login() {
 
         {stage === "credentials" && (
           <>
-            <p className="text-sm text-gray-500 text-center mb-6">Welcome back</p>
+            <p className="text-sm text-gray-500 text-center mb-6">Login as a farmer or a buyer — same secure account</p>
             {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
             <form onSubmit={submit} className="space-y-4">
               <div>
@@ -149,10 +149,10 @@ export default function Login() {
               </button>
             </form>
             <p className="text-sm text-center mt-5 text-gray-500">
-              New buyer? <Link href="/register?role=buyer" className="text-[#e65100] font-semibold">Create a free account</Link> — no documents needed.
+              New here? <Link href="/register?role=buyer" className="text-[#e65100] font-semibold">Sign Up as a Buyer</Link> — no documents needed.
             </p>
             <p className="text-xs text-center mt-2 text-gray-400">
-              Farmer? <Link href="/register?role=farmer" className="text-[#1b5e20] font-semibold">Register as a Farmer</Link> — Ghana Card verification required.
+              <Link href="/register?role=farmer" className="text-[#1b5e20] font-semibold">Sign Up as a Farmer</Link> — Ghana Card verification required.
             </p>
           </>
         )}

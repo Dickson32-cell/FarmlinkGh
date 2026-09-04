@@ -111,7 +111,7 @@ function RegisterForm() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1b5e20] to-[#0d3818] p-4">
         <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md text-center">
-          <h1 className="text-2xl font-bold text-[#1b5e20] mb-2">{isBuyer ? "Account Created!" : "Registration Submitted!"}</h1>
+          <h1 className="text-2xl font-bold text-[#1b5e20] mb-2">{isBuyer ? "Buyer Account Ready!" : "Farmer Sign Up Received!"}</h1>
           <p className="text-gray-600 mb-4">
             Thank you, <strong>{name}</strong>.{" "}
             {isBuyer ? "Your buyer account is active right away." : "Your account has been created and is now under review."}
@@ -308,7 +308,7 @@ function RegisterForm() {
               onClick={submit}
               disabled={!idFileUrl || !idNumberValid || loading || (role === "farmer" && !policyAgreed)}
               className="flex-1 bg-[#1b5e20] text-white py-3 rounded-lg font-semibold hover:bg-[#0d3818] disabled:opacity-50"
-            >{loading ? "Submitting..." : "Submit Registration"}</button>
+            >{loading ? "Submitting..." : "Sign Up as a Farmer →"}</button>
           </div>
         </div>
       </div>
@@ -329,7 +329,7 @@ function RegisterForm() {
         </div>
         <h1 className="text-2xl font-bold text-[#1b5e20] text-center mb-1"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink GH</h1>
         <p className="text-sm text-gray-500 text-center mb-1">
-          {role === "farmer" ? "Register as Farmer — Step 1 of 3" : "Create your buyer account — instant access"}
+          {role === "farmer" ? "Sign Up as a Farmer — Step 1 of 3" : "Sign Up as a Buyer — instant access"}
         </p>
         <p className="text-xs text-gray-400 text-center mb-6">
           {role === "farmer"
@@ -422,9 +422,9 @@ function RegisterForm() {
             onClick={step1Next}
             disabled={!step1Valid || loading}
             className="w-full p-3 bg-[#1b5e20] text-white rounded-lg font-semibold hover:bg-[#0d3818] disabled:opacity-50"
-          >{role === "buyer" ? (loading ? "Creating your account..." : "Create My Buyer Account →") : "Next: Identity Verification →"}</button>
+          >{role === "buyer" ? (loading ? "Creating your account..." : "Sign Up as a Buyer →") : "Next: Identity Verification →"}</button>
         </div>
-        <p className="text-center text-sm text-gray-500 mt-4">Have an account? <Link href="/login" className="text-[#e65100] font-semibold">Login</Link></p>
+        <p className="text-center text-sm text-gray-500 mt-4">Already have an account? <Link href="/login" className="text-[#e65100] font-semibold">Login</Link></p>
       </div>
     </div>
   );
