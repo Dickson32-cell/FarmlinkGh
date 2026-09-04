@@ -81,16 +81,16 @@ export default function Home() {
           <p className="text-sm opacity-80 mb-8">Real prices. Real produce. Real connections.</p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
-              href="/register?role=farmer"
+              href="/register"
               className="px-7 py-3.5 rounded-full font-semibold bg-[#e65100] text-white shadow-lg hover:bg-[#ff6f00] hover:shadow-xl hover:-translate-y-0.5 transition-all"
             >
-              Sign Up as Farmer
+              Sign Up
             </Link>
             <Link
-              href="/register?role=buyer"
+              href="/register"
               className="px-7 py-3.5 rounded-full font-semibold bg-white text-[#1b5e20] shadow-lg hover:bg-gray-100 hover:shadow-xl hover:-translate-y-0.5 transition-all"
             >
-              Register as Buyer
+              Sign Up
             </Link>
           </div>
         </div>

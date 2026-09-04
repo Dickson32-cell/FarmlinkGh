@@ -12,7 +12,7 @@ function RegisterForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("farmer");
+  const [role, setRole] = useState(""); // "" = show role choice screen first
   const [region, setRegion] = useState("Eastern");
   const [town, setTown] = useState("");
   const [farmSize, setFarmSize] = useState("");
@@ -317,6 +317,53 @@ function RegisterForm() {
 
   // ─── Step 1: Account Info ────────────────────────────────────────────────────
   const step1Valid = name.trim() && phone.trim() && password.trim();
+
+  // ROLE CHOICE SCREEN — shown first when no role is chosen yet. The user
+  // picks "Sign Up as a Farmer" or "Sign Up as a Buyer" before any form.
+  if (!role) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1b5e20] to-[#0d3818] p-4">
+        <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md text-center">
+          <img src="/logo.jpg" alt="FarmLink" className="w-14 h-14 rounded-full mx-auto mb-3 ring-2 ring-[#1b5e20]/20" />
+          <h1 className="text-2xl font-bold text-[#1b5e20] mb-1">Sign Up</h1>
+          <p className="text-sm text-gray-500 mb-1">Choose how you want to join FarmLink GH</p>
+          <p className="text-xs text-gray-400 mb-6">You can only have one account per phone number.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => setRole("farmer")}
+              className="p-5 rounded-xl border-2 border-gray-200 hover:border-[#1b5e20] hover:bg-[#e8f5e9] transition-all text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-[#e8f5e9] flex items-center justify-center mb-3">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1b5e20" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+              <div className="font-bold text-[#1b5e20]">Sign Up as a Farmer</div>
+              <div className="text-xs text-gray-500 mt-1 leading-snug">Sell your produce directly to buyers. Ghana Card verification required.</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("buyer")}
+              className="p-5 rounded-xl border-2 border-gray-200 hover:border-[#e65100] hover:bg-[#fff3e0] transition-all text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-[#fff3e0] flex items-center justify-center mb-3">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e65100" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" />
+                </svg>
+              </div>
+              <div className="font-bold text-[#e65100]">Sign Up as a Buyer</div>
+              <div className="text-xs text-gray-500 mt-1 leading-snug">Order fresh produce from verified farmers. No documents — instant access.</div>
+            </button>
+          </div>
+          <p className="text-sm text-center text-gray-500 mt-6">
+            Already have an account? <Link href="/login" className="text-[#1b5e20] font-semibold">Login</Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1b5e20] to-[#0d3818] p-4">
