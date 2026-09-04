@@ -12,6 +12,11 @@ export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "dicksonapam@gmail.com";
 
 const OTP_TTL_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
+// 20 codes/hour. This is a SINGLE-admin app: login codes and money-action
+// codes share this budget, so 5/hour was far too tight — an active admin
+// session testing releases burned it and every later request silently
+// sent no email (the UI used to ignore the 429). 20 still stops spam.
+const MAX_CODES_PER_HOUR = 20;
 
 export function generateAdminCode(): string {
   // cryptographically random 8-digit code
@@ -19,12 +24,12 @@ export function generateAdminCode(): string {
 }
 
 export async function createAdminOtp(purpose: "admin_login" | "admin_action", ip = "") {
-  // Rate limit: max 5 codes per email per hour
+  // Rate limit: see MAX_CODES_PER_HOUR above
   const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
   const recent = await prisma.adminOtp.count({
     where: { email: ADMIN_EMAIL, createdAt: { gte: hourAgo } },
   });
-  if (recent >= 5) {
+  if (recent >= MAX_CODES_PER_HOUR) {
     throw new Error("Too many code requests. Wait a few minutes and try again.");
   }
 

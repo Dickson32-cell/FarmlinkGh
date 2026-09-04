@@ -180,8 +180,12 @@ export default function Admin() {
     if (!actionToken && (status === "released" || status === "refunded")) {
       // Money-movement — require admin email code first
       setOtpModal({ orderId: id, label: action });
-      // trigger the email code
-      await fetch("/api/auth/admin-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      // trigger the email code — SHOW the result, never silently fail
+      const codeRes = await fetch("/api/auth/admin-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const codeData = await codeRes.json().catch(() => ({}));
+      if (!codeRes.ok || codeData.error) {
+        setOtpError(codeData.error || "Could not send the code email. Close this and try again.");
+      }
       return;
     }
     if (actionToken && status !== "released") actionToken = undefined;
@@ -1028,9 +1032,26 @@ export default function Admin() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm">
             <h2 className="text-xl font-bold text-[#1b5e20] text-center mb-1">Confirm Admin Action</h2>
-            <p className="text-sm text-gray-500 text-center mb-5">
+            <p className="text-sm text-gray-500 text-center mb-1">
               Enter the code sent to the admin email to {otpModal.label}.
             </p>
+            <p className="text-xs text-gray-400 text-center mb-4">
+              Sent to the FarmLink admin inbox. Arrives within a minute; valid 10 minutes.
+            </p>
+            <div className="flex justify-center mb-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  setOtpError("");
+                  const r = await fetch("/api/auth/admin-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+                  const d = await r.json().catch(() => ({}));
+                  setOtpError(r.ok && !d.error ? "A new code has been sent. Check your email." : (d.error || "Could not resend. Try again in a few minutes."));
+                }}
+                className="text-xs text-[#1565c0] font-semibold hover:underline"
+              >
+                Resend code
+              </button>
+            </div>
             {otpError && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 text-center">{otpError}</div>}
             <input
               type="text" inputMode="numeric" maxLength={8}
