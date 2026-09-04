@@ -385,14 +385,14 @@ function RegisterForm() {
         </p>
         {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button type="button" onClick={() => setRole("farmer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "farmer" ? "border-[#1b5e20] bg-[#e8f5e9] text-[#1b5e20]" : "border-gray-200 text-gray-500"}`}>
-              Farmer
-              <span className="block text-[10px] font-normal opacity-70 mt-0.5">Ghana Card required</span>
-            </button>
-            <button type="button" onClick={() => setRole("buyer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "buyer" ? "border-[#e65100] bg-[#fff3e0] text-[#e65100]" : "border-gray-200 text-gray-500"}`}>
-              Buyer
-              <span className="block text-[10px] font-normal opacity-70 mt-0.5">No documents — instant</span>
+          {/* Role was already chosen on the Sign Up choice screen — the form
+              shows which one you're in, with a link to switch if needed. */}
+          <div className="flex items-center justify-between bg-[#f6fbf6] border border-[#c8e6c9] rounded-lg px-4 py-2.5">
+            <span className="text-sm font-semibold text-[#1b5e20]">
+              {role === "farmer" ? "Signing up as a Farmer" : "Signing up as a Buyer"}
+            </span>
+            <button type="button" onClick={() => { setRole(""); window.scrollTo(0, 0); }} className="text-xs text-[#1565c0] font-semibold hover:underline">
+              Change role
             </button>
           </div>
           <div>
