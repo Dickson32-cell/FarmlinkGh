@@ -16,16 +16,18 @@ import NotificationBell from "@/components/notificationBell";
 export interface HeaderLink {
   href: string;
   label: string;
-  color?: "green" | "neutral";
+  color?: "green" | "neutral" | "orange" | "outline";
 }
 
 const colorClasses: Record<string, string> = {
-  // 2026-09 redesign: the old per-button rainbow (orange/blue/purple/gold
-  // backgrounds all at once) competed with the brand green and carried no
-  // meaning. Professional pattern now: uniform quiet buttons + ONE accent
-  // (bright green) for each role's primary action. Semantic colors live in
-  // badges/bars where they mean something (StockBar, PAID badge, status pills).
+  // 2026-09 scheme: quiet uniform buttons + accents that earn their color.
+  // green = role's primary action; orange = signup CTA (Dickson's preferred
+  // look, kept from the original header); outline = the Login ghost button.
+  // Semantic colors live in badges/bars where they mean something (StockBar,
+  // PAID badge, status pills).
   green: "bg-[#43a047] hover:bg-[#2e7d32] text-white shadow-sm",
+  orange: "bg-[#e65100] hover:bg-[#ff6f00] text-white shadow-sm",
+  outline: "border border-white/40 text-white hover:bg-white hover:text-[#1b5e20]",
   neutral: "bg-white/15 hover:bg-white/25 text-white",
 };
 
@@ -60,8 +62,8 @@ function linksForRole(role: string | undefined): HeaderLink[] {
     { href: "/", label: "Home", color: "neutral" },
     { href: "/faq", label: "FAQ", color: "neutral" },
     { href: "/support", label: "Support", color: "neutral" },
-    { href: "/login", label: "Login", color: "neutral" },
-    { href: "/register", label: "Sign Up", color: "green" },
+    { href: "/login", label: "Login", color: "outline" },
+    { href: "/register", label: "Sign Up", color: "orange" },
   ];
 }
 
@@ -97,7 +99,7 @@ export default function SiteHeader({
         <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2 min-w-0 shrink">
           <img src="/logo.jpg" alt="FarmLink" className="w-8 h-8 md:w-9 md:h-9 rounded-full ring-2 ring-white/30 shrink-0" />
           <span className="text-lg md:text-xl font-bold truncate">
-            FarmLink {title ? <span className="opacity-70 text-xs md:text-sm font-normal">{title}</span> : <span className="opacity-70 text-xs md:text-sm font-normal hidden sm:inline">Ghana</span>}
+            FarmLink {title ? <span className="opacity-70 text-xs md:text-sm font-normal">{title}</span> : <span className="opacity-70 text-xs md:text-sm font-normal hidden sm:inline">GH</span>}
           </span>
         </Link>
 
