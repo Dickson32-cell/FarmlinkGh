@@ -84,7 +84,7 @@ export default function Home() {
               href="/register?role=farmer"
               className="px-7 py-3.5 rounded-full font-semibold bg-[#e65100] text-white shadow-lg hover:bg-[#ff6f00] hover:shadow-xl hover:-translate-y-0.5 transition-all"
             >
-              Register as Farmer
+              Sign Up as Farmer
             </Link>
             <Link
               href="/register?role=buyer"

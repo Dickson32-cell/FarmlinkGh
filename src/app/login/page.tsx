@@ -126,7 +126,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1b5e20] to-[#0d3818] p-4">
       <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-[#1b5e20] text-center mb-1"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink Ghana</h1>
+        <h1 className="text-2xl font-bold text-[#1b5e20] text-center mb-1"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink GH</h1>
 
         {stage === "credentials" && (
           <>
@@ -148,7 +148,12 @@ export default function Login() {
                 {loading ? "Checking..." : "Login"}
               </button>
             </form>
-            <p className="text-sm text-center mt-5 text-gray-500">New to FarmLink? <Link href="/register" className="text-[#1b5e20] font-semibold">Create account</Link></p>
+            <p className="text-sm text-center mt-5 text-gray-500">
+              New buyer? <Link href="/register?role=buyer" className="text-[#e65100] font-semibold">Create a free account</Link> — no documents needed.
+            </p>
+            <p className="text-xs text-center mt-2 text-gray-400">
+              Farmer? <Link href="/register?role=farmer" className="text-[#1b5e20] font-semibold">Register as a Farmer</Link> — Ghana Card verification required.
+            </p>
           </>
         )}
 

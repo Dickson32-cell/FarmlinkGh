@@ -327,13 +327,26 @@ function RegisterForm() {
           <div className="flex-1 h-1 rounded-full bg-gray-200" />
           <div className="flex-1 h-1 rounded-full bg-gray-200" />
         </div>
-        <h1 className="text-2xl font-bold text-[#1b5e20] text-center mb-1"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink Ghana</h1>
-        <p className="text-sm text-gray-500 text-center mb-6">Create your account — Step 1 of 2</p>
+        <h1 className="text-2xl font-bold text-[#1b5e20] text-center mb-1"><img src="/logo.jpg" alt="Logo" className="w-8 h-8 inline-block mr-2 rounded-full" /> FarmLink GH</h1>
+        <p className="text-sm text-gray-500 text-center mb-1">
+          {role === "farmer" ? "Register as Farmer — Step 1 of 3" : "Create your buyer account — instant access"}
+        </p>
+        <p className="text-xs text-gray-400 text-center mb-6">
+          {role === "farmer"
+            ? "Farmers are Ghana Card-verified before selling — this protects buyers."
+            : "Buyers need no documents. Your phone is verified by SMS at login and payments are held in escrow."}
+        </p>
         {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button type="button" onClick={() => setRole("farmer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "farmer" ? "border-[#1b5e20] bg-[#e8f5e9] text-[#1b5e20]" : "border-gray-200 text-gray-500"}`}>Farmer</button>
-            <button type="button" onClick={() => setRole("buyer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "buyer" ? "border-[#e65100] bg-[#fff3e0] text-[#e65100]" : "border-gray-200 text-gray-500"}`}>Buyer</button>
+            <button type="button" onClick={() => setRole("farmer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "farmer" ? "border-[#1b5e20] bg-[#e8f5e9] text-[#1b5e20]" : "border-gray-200 text-gray-500"}`}>
+              Farmer
+              <span className="block text-[10px] font-normal opacity-70 mt-0.5">Ghana Card required</span>
+            </button>
+            <button type="button" onClick={() => setRole("buyer")} className={`p-3 rounded-lg border-2 font-semibold ${role === "buyer" ? "border-[#e65100] bg-[#fff3e0] text-[#e65100]" : "border-gray-200 text-gray-500"}`}>
+              Buyer
+              <span className="block text-[10px] font-normal opacity-70 mt-0.5">No documents — instant</span>
+            </button>
           </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Full Name</label>

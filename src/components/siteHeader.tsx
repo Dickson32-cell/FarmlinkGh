@@ -63,7 +63,7 @@ function linksForRole(role: string | undefined): HeaderLink[] {
     { href: "/faq", label: "FAQ", color: "neutral" },
     { href: "/support", label: "Support", color: "neutral" },
     { href: "/login", label: "Login", color: "outline" },
-    { href: "/register", label: "Sign Up", color: "orange" },
+    { href: "/register?role=farmer", label: "Sign Up", color: "orange" },
   ];
 }
 
