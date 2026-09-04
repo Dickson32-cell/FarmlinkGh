@@ -54,11 +54,14 @@ function linksForRole(role: string | undefined): HeaderLink[] {
       { href: "/dashboard", label: "Dashboard", color: "neutral" },
     ];
   }
-  // anonymous / public pages
+  // anonymous / public pages — includes the auth CTAs so the homepage,
+  // FAQ and Support all show the same professional header
   return [
     { href: "/", label: "Home", color: "neutral" },
     { href: "/faq", label: "FAQ", color: "neutral" },
     { href: "/support", label: "Support", color: "neutral" },
+    { href: "/login", label: "Login", color: "neutral" },
+    { href: "/register", label: "Sign Up", color: "green" },
   ];
 }
 

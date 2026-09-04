@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import SiteHeader from "@/components/siteHeader";
 import { useEffect, useState } from "react";
 
 import SiteFooter from "@/components/siteFooter";
@@ -55,26 +56,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#f8faf7]">
       {/* Header */}
-      <header className="bg-[#1b5e20] text-white px-6 py-3.5 flex items-center justify-between sticky top-0 z-50 shadow-md">
-        <div className="text-xl font-bold flex items-center gap-2">
-          <img src="/logo.jpg" alt="FarmLink" className="w-9 h-9 rounded-full ring-2 ring-white/30" />
-          FarmLink <span className="opacity-70 text-sm font-normal">Ghana</span>
-        </div>
-        <div className="flex gap-2.5 items-center">
-          <Link
-            href="/login"
-            className="px-5 py-2 rounded-full text-sm font-medium border border-white/40 text-white hover:bg-white hover:text-[#1b5e20] transition-colors"
-          >
-            Login
-          </Link>
-          <Link
-            href="/register"
-            className="px-5 py-2 rounded-full text-sm font-semibold bg-[#e65100] text-white shadow-sm hover:bg-[#ff6f00] hover:shadow-md transition-all"
-          >
-            Sign Up
-          </Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Hero — admin's landscape image covers this section behind the text.
           Desktop uses a taller min-height so wide photos aren't cropped to a sliver. */}
