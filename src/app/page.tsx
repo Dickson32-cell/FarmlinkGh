@@ -153,8 +153,8 @@ export default function Home() {
             <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center mb-4">
               <IconChat />
             </div>
- <h3 className="font-bold mb-2 text-gray-800">3. Connect Directly</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">WhatsApp or call the farmer directly. Negotiate and deal.</p>
+ <h3 className="font-bold mb-2 text-gray-800">3. Order & Pay Safe</h3>
+             <p className="text-sm text-gray-600 leading-relaxed">Order and pay securely through FarmLink. The farmer gets your delivery details by SMS and calls you to arrange delivery.</p>
           </div>
         </div>
       </section>

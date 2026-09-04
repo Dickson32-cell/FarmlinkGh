@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import ServiceWorkerRegister from "@/components/serviceWorkerRegister";
+import PWAInstallPrompt from "@/components/pwaInstallPrompt";
 
 export const metadata: Metadata = {
   title: "FarmLink Ghana — Farm Produce Market Link",
@@ -24,19 +26,32 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
+  // PWA: installable app on Android home screens; iOS via Add to Home Screen
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "FarmLink",
+    statusBarStyle: "black-translucent",
+  },
 };
 
-// Proper mobile rendering: width=device-width, no forced zoom-out
+// Proper mobile rendering: width=device-width, no forced zoom-out.
+// themeColor drives the Android address-bar color when installed.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  themeColor: "#1b5e20",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorkerRegister />
+        <PWAInstallPrompt />
+      </body>
     </html>
   );
 }
