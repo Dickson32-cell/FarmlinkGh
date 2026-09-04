@@ -78,7 +78,7 @@ export default function FarmerProfile() {
 
   return (
     <div className="min-h-screen bg-[#f8faf7]">
-      <SiteHeader links={[{ href: "/market", label: "Market", color: "orange" }]} />
+      <SiteHeader links={[{ href: "/market", label: "Market", color: "neutral" }]} />
 
       <div className="max-w-4xl mx-auto p-6">
         {/* Farmer header card */}

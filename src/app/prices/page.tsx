@@ -24,7 +24,7 @@ export default function Prices() {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader title="Price Board" user={headerUser} links={[{ href: "/dashboard", label: "Dashboard", color: "neutral" }, { href: "/market", label: "Market", color: "orange" }]} />
+      <SiteHeader title="Price Board" user={headerUser} links={[{ href: "/dashboard", label: "Dashboard", color: "neutral" }, { href: "/market", label: "Market", color: "neutral" }]} />
 
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-2xl font-bold text-[#1b5e20] mb-2">Today's Market Prices</h1>

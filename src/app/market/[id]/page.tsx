@@ -203,7 +203,7 @@ export default function ListingDetail() {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader title="Listing" user={user} links={[{ href: "/market", label: "Back to Market", color: "orange" }]} />
+      <SiteHeader title="Listing" user={user} links={[{ href: "/market", label: "Back to Market", color: "neutral" }]} />
 
       <div className="max-w-4xl mx-auto p-6">
         <Link href="/market" className="text-[#1b5e20] text-sm font-semibold mb-4 inline-block">← Back to Market</Link>

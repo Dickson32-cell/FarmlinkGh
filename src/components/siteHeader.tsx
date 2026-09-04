@@ -16,39 +16,41 @@ import NotificationBell from "@/components/notificationBell";
 export interface HeaderLink {
   href: string;
   label: string;
-  color?: "orange" | "blue" | "purple" | "gold" | "neutral";
+  color?: "green" | "neutral";
 }
 
 const colorClasses: Record<string, string> = {
-  orange: "bg-[#ef6c00] hover:bg-[#e65100] text-white",
-  blue: "bg-[#1565c0] hover:bg-[#0d47a1] text-white",
-  purple: "bg-[#7b1fa2] hover:bg-[#6a1b9a] text-white",
-  gold: "bg-[#f9a825] hover:bg-[#f57f17] text-[#3e2723]",
+  // 2026-09 redesign: the old per-button rainbow (orange/blue/purple/gold
+  // backgrounds all at once) competed with the brand green and carried no
+  // meaning. Professional pattern now: uniform quiet buttons + ONE accent
+  // (bright green) for each role's primary action. Semantic colors live in
+  // badges/bars where they mean something (StockBar, PAID badge, status pills).
+  green: "bg-[#43a047] hover:bg-[#2e7d32] text-white shadow-sm",
   neutral: "bg-white/15 hover:bg-white/25 text-white",
 };
 
 function linksForRole(role: string | undefined): HeaderLink[] {
   if (role === "admin") {
     return [
-      { href: "/admin", label: "Admin Panel", color: "orange" },
+      { href: "/admin", label: "Admin Panel", color: "green" },
       { href: "/", label: "Home", color: "neutral" },
     ];
   }
   if (role === "farmer") {
     return [
-      { href: "/orders", label: "Orders to Deliver", color: "gold" },
-      { href: "/prices", label: "Prices", color: "blue" },
-      { href: "/profile", label: "Profile", color: "purple" },
+      { href: "/orders", label: "Orders to Deliver", color: "green" },
+      { href: "/prices", label: "Prices", color: "neutral" },
+      { href: "/profile", label: "Profile", color: "neutral" },
       { href: "/dashboard", label: "Dashboard", color: "neutral" },
     ];
   }
   if (role === "buyer") {
     return [
-      { href: "/market", label: "Market", color: "orange" },
-      { href: "/wishlist", label: "Wishlist", color: "purple" },
-      { href: "/orders", label: "My Orders", color: "gold" },
-      { href: "/prices", label: "Prices", color: "blue" },
-      { href: "/profile", label: "Profile", color: "purple" },
+      { href: "/market", label: "Market", color: "green" },
+      { href: "/wishlist", label: "Wishlist", color: "neutral" },
+      { href: "/orders", label: "My Orders", color: "neutral" },
+      { href: "/prices", label: "Prices", color: "neutral" },
+      { href: "/profile", label: "Profile", color: "neutral" },
       { href: "/dashboard", label: "Dashboard", color: "neutral" },
     ];
   }
