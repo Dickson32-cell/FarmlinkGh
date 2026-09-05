@@ -44,7 +44,7 @@ export default function Login() {
         setStage("otp");
       } else {
         // 2FA disabled — straight in (legacy)
-        router.push("/dashboard");
+        router.push(data.role === "buyer" ? "/market" : "/dashboard");
       }
     } else {
       setError(data.error || "Login failed");
@@ -63,7 +63,8 @@ export default function Login() {
     const data = await res.json();
     setLoading(false);
     if (res.ok) {
-      router.push("/dashboard");
+      // Buyers land on the market (what they came for); others on their dashboard
+      router.push(data.role === "buyer" ? "/market" : data.role === "admin" ? "/admin" : "/dashboard");
     } else {
       setError(data.error || "Verification failed");
       setOtp("");

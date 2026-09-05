@@ -3,7 +3,7 @@
 //   - App shell + pages: NetworkFirst (fresh when online, cached copy when offline)
 //   - Static assets (_next/static, images): CacheFirst (fast repeat loads)
 //   - NEVER cache /api/* — orders, payments and auth must always hit the server
-const VERSION = "farmlink-v1";
+const VERSION = "farmlink-v2";
 const SHELL_CACHE = `${VERSION}-pages`;
 const ASSET_CACHE = `${VERSION}-assets`;
 
@@ -73,5 +73,36 @@ self.addEventListener("fetch", (event) => {
         return Response.error();
       }
     })()
+  );
+});
+// ---- WEB PUSH (admin offline notifications) ----
+self.addEventListener("push", (event) => {
+  let data = { title: "FarmLink GH", body: "You have a new update.", url: "/admin" };
+  try { data = { ...data, ...event.data.json() }; } catch {}
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag: data.tag || "farmlink-admin",
+      data: { url: data.url },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/admin";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client) client.navigate(url).catch(() => {});
+          return;
+        }
+      }
+      return clients.openWindow(url);
+    })
   );
 });

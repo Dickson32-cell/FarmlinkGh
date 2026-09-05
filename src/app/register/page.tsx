@@ -441,7 +441,7 @@ function RegisterForm() {
                 <div>
                   <label className="text-xs font-semibold uppercase text-gray-500">Business Type</label>
                   <select value={businessType} onChange={(e) => setBusinessType(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-lg mt-1 focus:border-[#43a047] outline-none">
-                    <option>Market Trader</option><option>Restaurant</option><option>Exporter</option><option>Supermarket</option><option>Food Processor</option><option>Hotel</option><option>Boarding School</option><option>Hospital/Clinic</option><option>Individual Buyer</option><option>NGO/Govt</option>
+                    <option>Market Trader</option><option>Restaurant</option><option>Exporter</option><option>Supermarket</option><option>Food Processor</option><option>Hotel</option><option>School</option><option>Hospital/Clinic</option><option>Individual Buyer</option><option>NGO/Govt</option>
                   </select>
                 </div>
                 <div>

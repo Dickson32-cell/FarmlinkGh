@@ -20,6 +20,7 @@ interface Order {
 
 import SiteHeader from "@/components/siteHeader";
 import NotificationBell from "@/components/notificationBell";
+import AdminPushToggle from "@/components/adminPushToggle";
 import RefundControls from "@/components/refundControls";
 
 // headerImage setting holds a JSON array of URLs (slideshow) or a single
@@ -439,6 +440,7 @@ export default function Admin() {
 
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex justify-end mb-2"><button onClick={() => { fetch("/api/auth/logout", { method: "POST" }).then(() => router.push("/")); }} className="bg-red-600/70 px-3 py-1.5 rounded-lg text-sm hover:bg-red-600">Logout</button></div>
+        <AdminPushToggle />
         <h1 className="text-2xl font-bold text-[#1b5e20] mb-6">Admin Dashboard</h1>
 
         {/* Stats */}

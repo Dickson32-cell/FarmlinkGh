@@ -300,3 +300,14 @@ model AuditLog {
 
   @@index([actorId, createdAt])
 }
+// Web Push subscription (admin offline notifications — PWA)
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique // push service URL — one row per browser/device
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

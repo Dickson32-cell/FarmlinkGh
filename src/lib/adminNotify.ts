@@ -19,6 +19,10 @@ export async function notifyAdminEvent(
     await prisma.notification.create({
       data: { userId: admin.id, type, title, body, link },
     });
+    // OFFLINE NOTIFICATIONS: web push reaches the admin's phone even when
+    // the site is closed (admin must have enabled alerts in the admin panel)
+    const { notifyAdminPush } = await import("@/lib/push");
+    await notifyAdminPush(`FarmLink — ${title}`, body, link);
   } catch (e) {
     console.error("[ADMIN-NOTIFY] failed:", String(e).slice(0, 120));
   }
