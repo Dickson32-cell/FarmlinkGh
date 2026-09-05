@@ -89,5 +89,20 @@ export async function sendAdminCodeEmail(code: string, what: string): Promise<{ 
     `This code expires in 10 minutes.\n` +
     `If you did not attempt this action, change your admin password immediately.\n\n` +
     `— FarmLink Ghana`;
+
+  // SMS FALLBACK: the same code goes to the admin's phone by SMS. Gmail
+  // frequently spam-filters the Resend test sender; the SMS lane is the
+  // admin's verified channel — the code must ALWAYS arrive somewhere.
+  // Non-fatal: SMS failure never blocks the email send.
+  try {
+    const { sendSms } = await import("@/lib/otp");
+    await sendSms(
+      process.env.ADMIN_MOMO || "0248847819",
+      `FarmLink: ${what} code ${code}. Valid 10 minutes. farmlinkgh.app/admin`
+    );
+  } catch (e) {
+    console.error("[ADMIN-CODE-SMS] fallback failed:", String(e).slice(0, 100));
+  }
+
   return sendEmail(ADMIN_EMAIL, subject, text);
 }
