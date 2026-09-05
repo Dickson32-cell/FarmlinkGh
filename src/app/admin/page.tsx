@@ -19,6 +19,7 @@ interface Order {
 }
 
 import SiteHeader from "@/components/siteHeader";
+import NotificationBell from "@/components/notificationBell";
 import RefundControls from "@/components/refundControls";
 
 // headerImage setting holds a JSON array of URLs (slideshow) or a single

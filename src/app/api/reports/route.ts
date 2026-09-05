@@ -55,7 +55,11 @@ export async function POST(req: NextRequest) {
         scam: "Scam report", payment: "Payment issue", "fake-listing": "Fake listing",
         behavior: "User behavior", "hacked-account": "HACKED ACCOUNT", other: "Report",
       };
-      await sendSms(
+try {
+      const { notifyAdminEvent } = await import("@/lib/adminNotify");
+      await notifyAdminEvent("report", `New ${catLabel[category]} report`, `${reporterName}${reporterPhone ? " (" + reporterPhone + ")" : ""} submitted a report — review it in the admin panel.`, "/admin");
+    } catch {}
+          await sendSms(
         process.env.ADMIN_MOMO || "0248847819",
         `FarmLink ALERT: New ${catLabel[category]} from ${reporterName}${reporterPhone ? " (" + reporterPhone + ")" : ""}. Check admin panel.`,
       );

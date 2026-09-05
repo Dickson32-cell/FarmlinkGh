@@ -120,6 +120,15 @@ export async function POST(req: NextRequest) {
     // ADMIN ALERT: instant SMS to the admin on every signup (buyers included)
     try {
       const { sendSms } = await import("@/lib/otp");
+      const { notifyAdminEvent } = await import("@/lib/adminNotify");
+      await notifyAdminEvent(
+        "approval",
+        role === "buyer" ? "New buyer signup" : "New farmer registration",
+        role === "buyer"
+          ? `${name} (${normalizedPhone}) signed up — auto-approved, no action needed.`
+          : `${name} (${normalizedPhone}) registered as a farmer — approval needed in the admin panel.`,
+        "/admin"
+      );
       await sendSms(
         process.env.ADMIN_MOMO || "0248847819",
         role === "buyer"
