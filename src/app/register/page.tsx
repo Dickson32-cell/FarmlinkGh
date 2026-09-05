@@ -279,7 +279,7 @@ function RegisterForm() {
               <div className="text-xs font-bold uppercase text-gray-500 mb-2"> Farmer Agreement — please read</div>
               <ul className="text-xs text-gray-700 space-y-1.5 list-disc list-inside mb-3">
                 <li><strong>5% commission:</strong> FarmLink charges 5% on each completed sale (plus the payment processor fee). This is because the buyer receives the product and confirms it on the site — the escrow that protects both sides.</li>
-                <li><strong>Buyer confirmation:</strong> Your payment is released only after the buyer confirms on the site that they received the product. <strong>If the buyer delays confirmation, you (the farmer) can call or email the admin</strong> — 0595726252 / info.rametechconsultancy@gmail.com — and the admin will contact the buyer to confirm product received.</li>
+                <li><strong>Buyer confirmation:</strong> Your payment is released only after the buyer confirms on the site that they received the product. <strong>If the buyer delays confirmation, you (the farmer) can call or email the admin</strong> — 0595726252 / support@farmlinkgh.app — and the admin will contact the buyer to confirm product received.</li>
                 <li><strong>2-3 day payout:</strong> After the buyer confirms, your money is sent to you within 2-3 days.</li>
                 <li><strong>Refunds:</strong> Buyers have 3 days after confirming delivery to request a refund; the admin reviews and settles it within 2-3 days. <strong>If the buyer damaged the product</strong>, file a complaint in your Orders page — the admin measures the damage and subtracts it from the refund money.</li>
               </ul>

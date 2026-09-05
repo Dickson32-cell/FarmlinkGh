@@ -135,7 +135,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: "Who runs FarmLink?",
-        a: <>FarmLink Ghana is operated by RAMEDIC Consultancy &amp; Creative Ltd. Support: <strong>0595726252</strong> · <strong>info.rametechconsultancy@gmail.com</strong>.</>,
+        a: <>FarmLink Ghana is operated by RAMEDIC Consultancy &amp; Creative Ltd. Support: <strong>0595726252</strong> · <strong>support@farmlinkgh.app</strong>.</>,
       },
     ],
   },

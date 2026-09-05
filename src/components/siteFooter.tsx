@@ -21,7 +21,7 @@ export default function SiteFooter({ dark = true }: { dark?: boolean }) {
           </div>
         </div>
         <div className="text-xs opacity-70 space-y-1">
-          <div>Support: 0595726252 · info.rametechconsultancy@gmail.com</div>
+          <div>Support: 0595726252 · support@farmlinkgh.app</div>
           <div>farmlinkgh.app</div>
           <div>FarmLink GH © 2026 — Connecting farmers with buyers</div>
         </div>

@@ -19,9 +19,9 @@ export default function Support() {
             <div className="text-2xl font-extrabold text-[#1b5e20]">0595726252</div>
             <div className="text-sm text-gray-500 mt-2">Mon-Sat, 8am - 8pm</div>
           </a>
-          <a href="mailto:info.rametechconsultancy@gmail.com" className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all">
+          <a href="mailto:support@farmlinkgh.app" className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all">
             <div className="text-xs font-bold uppercase text-gray-400 mb-2">Email</div>
-            <div className="text-lg font-bold text-[#1b5e20] break-all">info.rametechconsultancy@gmail.com</div>
+            <div className="text-lg font-bold text-[#1b5e20] break-all">support@farmlinkgh.app</div>
             <div className="text-sm text-gray-500 mt-2">Replies within 24 hours</div>
           </a>
         </div>
