@@ -14,7 +14,7 @@ const CATEGORIES: Category[] = [
     items: [
       {
         q: "How do I create an account?",
-        a: <>Tap <strong>Sign Up</strong> on the homepage and choose <strong>Register as Farmer</strong> or <strong>Register as Buyer</strong>. Buyers just fill in their details and can log in immediately — no documents needed. Farmers upload their Ghana Card (or passport) for verification, which takes 2-3 working days.</>,
+        a: <>Tap <strong>Sign Up</strong> on the homepage and choose <strong>Sign Up as a Farmer</strong> or <strong>Sign Up as a Buyer</strong>. Buyers just fill in their details and can log in immediately — no documents needed. Farmers upload their Ghana Card (or passport) for verification, which takes 2-3 working days.</>,
       },
       {
         q: "Why do farmers need a Ghana Card or passport?",
