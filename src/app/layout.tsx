@@ -4,8 +4,20 @@ import ServiceWorkerRegister from "@/components/serviceWorkerRegister";
 import PWAInstallPrompt from "@/components/pwaInstallPrompt";
 
 export const metadata: Metadata = {
-  title: "FarmLink Ghana — Farm Produce Market Link",
-  description: "Connect farmers directly with buyers. No middlemen. Real prices. Real produce.",
+  metadataBase: new URL("https://www.farmlinkgh.app"),
+  title: "FarmLink Ghana — Buy & Sell Farm Produce Direct, No Middlemen",
+  description:
+    "Ghana's farm marketplace. Buy fresh produce directly from Ghana Card-verified farmers — maize, cassava, vegetables and more. Escrow-protected payments, GPS delivery, SMS alerts on any phone. Sell your harvest at real prices.",
+  keywords: [
+    "FarmLink Ghana",
+    "buy farm produce Ghana",
+    "sell farm produce Ghana",
+    "Ghana farm market online",
+    "farmers market Ghana",
+    "buy maize Ghana",
+    "agricultural marketplace Ghana",
+    "farm produce Koforidua",
+  ],
   // Social sharing (WhatsApp / Telegram / Facebook / X): brand-green card
   // with the FarmLink logo + name — replaces the default Vercel share block.
   openGraph: {
@@ -48,6 +60,52 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+
+        {/* Structured data for Google: organization + site search + marketplace */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": "https://www.farmlinkgh.app/#org",
+                  name: "FarmLink Ghana",
+                  url: "https://www.farmlinkgh.app",
+                  logo: "https://www.farmlinkgh.app/logo.jpg",
+                  description:
+                    "Ghana farm marketplace connecting Ghana Card-verified farmers directly with buyers. Escrow payments, GPS delivery, SMS alerts.",
+                  contactPoint: {
+                    "@type": "ContactPoint",
+                    telephone: "+233595726252",
+                    contactType: "customer support",
+                    email: "support@farmlinkgh.app",
+                    areaServed: "GH",
+                    availableLanguage: ["en"],
+                  },
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://www.farmlinkgh.app/#site",
+                  url: "https://www.farmlinkgh.app",
+                  name: "FarmLink Ghana",
+                  publisher: { "@id": "https://www.farmlinkgh.app/#org" },
+                  inLanguage: "en",
+                },
+                {
+                  "@type": "WebPage",
+                  "@id": "https://www.farmlinkgh.app/#home",
+                  url: "https://www.farmlinkgh.app",
+                  name: "FarmLink Ghana — Buy & Sell Farm Produce Direct",
+                  isPartOf: { "@id": "https://www.farmlinkgh.app/#site" },
+                  about: { "@id": "https://www.farmlinkgh.app/#org" },
+                },
+              ],
+            }),
+          }}
+        />
+
         {children}
         <ServiceWorkerRegister />
         <PWAInstallPrompt />

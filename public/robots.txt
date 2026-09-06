@@ -1,0 +1,15 @@
+# FarmLink GH — allow all search engines
+User-agent: *
+Allow: /
+
+# Private/authenticated areas — keep out of search results
+Disallow: /admin
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /orders
+Disallow: /notifications
+Disallow: /wishlist
+Disallow: /profile
+
+# The marketplace + prices + info pages are the value — crawl them fully
+Sitemap: https://www.farmlinkgh.app/sitemap.xml
