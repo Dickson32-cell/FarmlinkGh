@@ -44,6 +44,14 @@ export default function Admin() {
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({ total: 0, pending: 0, paid: 0, delivered: 0, released: 0, revenue: 0 });
   const [activeTab, setActiveTab] = useState<"verifications" | "orders" | "users" | "changes" | "reports" | "broadcast">("verifications");
+  // Deep-link: /admin?tab=reports opens straight to that tab (used by admin
+  // notification links so clicking one lands on the actual work, not the default view)
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && ["verifications", "orders", "users", "changes", "reports", "broadcast"].includes(t)) {
+      setActiveTab(t as any);
+    }
+  }, []);
   const [cardModal, setCardModal] = useState<string | null>(null);
   const [otpModal, setOtpModal] = useState<{ orderId: string; label: string; status?: string } | null>(null);
   const [otpCode, setOtpCode] = useState("");
@@ -125,6 +133,9 @@ export default function Admin() {
   const [headerError, setHeaderError] = useState("");
   const [changeRequests, setChangeRequests] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
+  const [expandedReport, setExpandedReport] = useState<string | null>(null);
+  const [reportNotes, setReportNotes] = useState<Record<string, string>>({});
+  const [reportResolutions, setReportResolutions] = useState<Record<string, string>>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -413,6 +424,24 @@ export default function Admin() {
     loadAll();
   };
 
+  // Resolve with a recorded outcome — SMSes BOTH the reporter and (if the
+  // complaint is about a listing) the farmer who owns that listing.
+  const handleReportResolve = async (id: string, resolution: string, note: string) => {
+    const res = await fetch("/api/reports", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "resolved", resolution, adminNote: note }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Failed to resolve");
+      return;
+    }
+    const updated = await res.json();
+    setReports((prev) => prev.map((r) => (r.id === id ? { ...r, ...updated } : r)));
+    alert("Complaint resolved. The reporter" + (updated.farmerName ? " and the farmer" : "") + " will receive the status SMS.");
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>;
   if (!user) return null;
 
@@ -645,34 +674,147 @@ export default function Admin() {
             ) : (
               <div className="space-y-4">
                 {reports.map((r: any) => (
-                  <div key={r.id} className={`bg-white rounded-xl shadow border-2 p-5 ${r.status === "new" ? "border-amber-300" : r.status === "resolved" ? "border-green-200" : "border-gray-200"}`}>
-                    <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">{r.category}</span>
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${r.status === "new" ? "bg-amber-100 text-amber-700" : r.status === "resolved" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
-                          {r.status === "new" ? "NEW" : r.status}
-                        </span>
+                  <div key={r.id} className={`bg-white rounded-xl shadow border-2 overflow-hidden ${r.status === "new" ? "border-amber-300" : r.status === "resolved" ? "border-green-200" : "border-gray-200"}`}>
+                    {/* Header — click to expand full details */}
+                    <button
+                      onClick={() => setExpandedReport(expandedReport === r.id ? null : r.id)}
+                      className="w-full text-left p-5 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">{r.category}</span>
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${r.status === "new" ? "bg-amber-100 text-amber-700" : r.status === "resolved" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
+                            {r.status === "new" ? "NEW" : r.status.toUpperCase()}
+                          </span>
+                          {r.farmer && <span className="text-xs font-semibold text-[#1b5e20]">involves: {r.farmer.name}</span>}
+                        </div>
+                        <div className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleString()}</div>
                       </div>
-                      <div className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleString()}</div>
-                    </div>
-                    <div className="text-sm text-gray-500 mb-2">
-                      From: <strong>{r.reporterName}</strong>{r.reporterPhone ? ` (${r.reporterPhone})` : ""}
-                      {r.listingUrl && <span> · about <a href={r.listingUrl} target="_blank" className="text-[#1b5e20] underline">a listing</a></span>}
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 mb-3 whitespace-pre-wrap">{r.message}</div>
-                    <div className="flex gap-2 flex-wrap">
-                      {r.status === "new" && (
-                        <button onClick={() => handleReportStatus(r.id, "reviewing")} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700">
-                          Mark Reviewing
-                        </button>
-                      )}
-                      {r.status !== "resolved" && (
-                        <button onClick={() => handleReportStatus(r.id, "resolved")} className="bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818]">
-                          Resolve {r.reporterPhone ? "(SMSes reporter)" : ""}
-                        </button>
-                      )}
-                      {r.status === "resolved" && <span className="text-sm text-[#1b5e20] font-semibold self-center">Resolved</span>}
-                    </div>
+                      <div className="text-sm text-gray-500">
+                        From: <strong>{r.reporterName}</strong>{r.reporterPhone ? ` (${r.reporterPhone})` : ""}
+                      </div>
+                      <div className="text-sm text-gray-700 mt-2 line-clamp-2">{r.message}</div>
+                      <div className="text-xs text-[#1b5e20] font-semibold mt-2">
+                        {expandedReport === r.id ? "Hide details ▲" : "Open complaint for full details ▼"}
+                      </div>
+                    </button>
+
+                    {/* Full detail panel */}
+                    {expandedReport === r.id && (
+                      <div className="border-t border-gray-200 p-5 bg-gray-50/60 space-y-4">
+                        {/* The complaint */}
+                        <div>
+                          <div className="text-xs font-bold uppercase text-gray-500 mb-1">Complaint</div>
+                          <div className="bg-white rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap border border-gray-200">{r.message}</div>
+                        </div>
+
+                        {/* Who the complaint is about */}
+                        {r.farmer ? (
+                          <div>
+                            <div className="text-xs font-bold uppercase text-gray-500 mb-1">Complaint is about this farmer</div>
+                            <div className="bg-white rounded-lg p-4 border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                              <div><span className="text-gray-500">Name:</span> <strong>{r.farmer.name}</strong></div>
+                              <div><span className="text-gray-500">Phone:</span> {r.farmer.phone}</div>
+                              <div><span className="text-gray-500">Location:</span> {r.farmer.town}, {r.farmer.region}</div>
+                              <div><span className="text-gray-500">Farm size:</span> {r.farmer.farmSize} acres</div>
+                              <div><span className="text-gray-500">Main crops:</span> {r.farmer.mainCrops}</div>
+                              <div><span className="text-gray-500">Member since:</span> {r.farmer.id ? "" : ""}{r.farmer.name ? "" : ""}</div>
+                              {r.listing && (
+                                <>
+                                  <div className="sm:col-span-2 border-t border-gray-100 pt-2 mt-1"><span className="text-gray-500">Listed produce:</span> <strong>{r.listing.crop}</strong> — {r.listing.quantity} {r.listing.unit} at GHS{r.listing.price} · {r.listing.region} · status: {r.listing.status}</div>
+                                  <div className="sm:col-span-2"><a href={r.listingUrl} target="_blank" className="text-[#1b5e20] underline font-semibold">View the listing page →</a></div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-white rounded-lg p-4 border border-gray-200 text-sm text-gray-500">
+                            No specific listing/farmer attached to this report{r.listingUrl ? " (the linked page may have been removed)" : ""}.
+                          </div>
+                        )}
+
+                        {/* The reporter */}
+                        <div>
+                          <div className="text-xs font-bold uppercase text-gray-500 mb-1">Reported by</div>
+                          <div className="bg-white rounded-lg p-4 border border-gray-200 text-sm">
+                            <strong>{r.reporterName}</strong>{r.reporterPhone ? ` · ${r.reporterPhone}` : " · no phone provided"}
+                            {r.reporterId ? " (registered user)" : " (not logged in when reporting)"}
+                          </div>
+                        </div>
+
+                        {/* Admin note */}
+                        <div>
+                          <div className="text-xs font-bold uppercase text-gray-500 mb-1">Admin note (internal)</div>
+                          <textarea
+                            defaultValue={r.adminNote || ""}
+                            onChange={(e) => setReportNotes({ ...reportNotes, [r.id]: e.target.value })}
+                            placeholder="Your investigation notes — what you checked, what you decided..."
+                            className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1b5e20]"
+                            rows={2}
+                          />
+                        </div>
+
+                        {/* Resolution steps */}
+                        <div>
+                          <div className="text-xs font-bold uppercase text-gray-500 mb-2">Steps to resolve</div>
+                          <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside bg-white rounded-lg p-4 border border-gray-200">
+                            <li>Read the complaint and open the listing page to verify the details.</li>
+                            <li>Call the reporter{r.reporterPhone ? ` (${r.reporterPhone})` : ""} to confirm the facts.</li>
+                            {r.farmer ? <li>Call the farmer ({r.farmer.phone}) and hear their side of the story.</li> : <li>Contact the reported user and hear their side.</li>}
+                            <li>Decide the outcome: warning, listing removal, account suspension, or no action (if unfounded).</li>
+                            <li>Record your decision in the Admin note, then press Resolve — both the reporter{r.farmer ? " and the farmer" : ""} will receive an SMS with the status.</li>
+                          </ol>
+                        </div>
+
+                        {/* Resolution record */}
+                        <div>
+                          <div className="text-xs font-bold uppercase text-gray-500 mb-1">Resolution (sent in the status SMS to both sides)</div>
+                          <select
+                            defaultValue={(r as any).resolution || ""}
+                            onChange={(e) => setReportResolutions({ ...reportResolutions, [r.id]: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1b5e20]"
+                          >
+                            <option value="">— Choose the outcome —</option>
+                            <option value="warning-issued">Warning issued to the reported user</option>
+                            <option value="listing-removed">Listing removed from the market</option>
+                            <option value="account-suspended">Account suspended</option>
+                            <option value="no-action">No action needed — complaint unfounded</option>
+                            <option value="guidance-given">Guidance given — resolved amicably</option>
+                          </select>
+                          {reportResolutions[r.id] && (
+                            <div className="text-xs text-gray-500 mt-1">Pressing Resolve will SMS: &quot;FarmLink: Your report was resolved ({reportResolutions[r.id].replace(/-/g, " ")}). farmlinkgh.app&quot;</div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2 flex-wrap pt-1">
+                          {r.status === "new" && (
+                            <button onClick={() => handleReportStatus(r.id, "reviewing")} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700">
+                              Mark Reviewing
+                            </button>
+                          )}
+                          {r.status !== "resolved" && (
+                            <button
+                              onClick={() => {
+                                const res = reportResolutions[r.id] || (r as any).resolution || "no-action";
+                                if (!confirm(`Resolve this complaint as "${res.replace(/-/g, " ")}"?
+
+Both the reporter${r.farmer ? " and the farmer" : ""} will receive an SMS.`)) return;
+                                handleReportResolve(r.id, res, reportNotes[r.id] || r.adminNote || "");
+                              }}
+                              className="bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818]"
+                            >
+                              Resolve + SMS both sides
+                            </button>
+                          )}
+                          {r.status === "resolved" && (
+                            <div className="text-sm text-[#1b5e20] font-semibold self-center">
+                              Resolved{(r as any).resolution ? ` — ${(r as any).resolution.replace(/-/g, " ")}` : ""}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

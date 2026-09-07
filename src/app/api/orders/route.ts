@@ -230,7 +230,7 @@ export async function PATCH(req: NextRequest) {
         // ADMIN ALERT: payment landed on an order — instant in-app + SMS
         try {
           const { notifyAdminEvent } = await import("@/lib/adminNotify");
-          await notifyAdminEvent("payment", `Payment received — order ${updated.id.slice(-8).toUpperCase()}`, `${updated.buyerName} paid GHS${updated.totalAmount.toFixed(2)} for ${updated.crop} x${updated.quantity} from ${updated.farmerName}. Farmer has been told to start delivery.`, "/admin");
+          await notifyAdminEvent("payment", `Payment received — order ${updated.id.slice(-8).toUpperCase()}`, `${updated.buyerName} paid GHS${updated.totalAmount.toFixed(2)} for ${updated.crop} x${updated.quantity} from ${updated.farmerName}. Farmer has been told to start delivery.`, "/admin?tab=orders");
         } catch {}
         try {
           const { sendSms } = await import("@/lib/otp");
@@ -452,7 +452,7 @@ export async function PATCH(req: NextRequest) {
           .catch(() => { });
         try {
           const { notifyAdminEvent } = await import("@/lib/adminNotify");
-          await notifyAdminEvent("refund", "Refund requested", `Order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GHS${order.totalAmount.toFixed(2)}) — review in the admin panel.`, "/admin");
+          await notifyAdminEvent("refund", "Refund requested", `Order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GHS${order.totalAmount.toFixed(2)}) — review in the admin panel.`, "/admin?tab=orders");
         } catch {}
         await sendSms(process.env.ADMIN_MOMO || "0248847819",
           `FarmLink ADMIN: Refund requested — order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GH₵${order.totalAmount.toFixed(2)}). Review in admin panel.`)
@@ -501,7 +501,7 @@ export async function PATCH(req: NextRequest) {
         const { sendSms } = await import("@/lib/otp");
         try {
           const { notifyAdminEvent } = await import("@/lib/adminNotify");
-          await notifyAdminEvent("refund", "Farmer complaint filed", `Order ${order.id.slice(-8).toUpperCase()} (${order.crop}) — damage complaint needs your review.`, "/admin");
+          await notifyAdminEvent("refund", "Farmer complaint filed", `Order ${order.id.slice(-8).toUpperCase()} (${order.crop}) — damage complaint needs your review.`, "/admin?tab=orders");
         } catch {}
         await sendSms(process.env.ADMIN_MOMO || "0248847819",
           `FarmLink ADMIN: Farmer complaint on order ${order.id.slice(-8).toUpperCase()} (${order.crop}, GHS${order.totalAmount.toFixed(2)}) - refund under review. Check admin panel.`)

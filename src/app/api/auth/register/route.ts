@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
         role === "buyer"
           ? `${name} (${normalizedPhone}) signed up — auto-approved, no action needed.`
           : `${name} (${normalizedPhone}) registered as a farmer — approval needed in the admin panel.`,
-        "/admin"
+        "/admin?tab=verifications"
       );
       await sendSms(
         process.env.ADMIN_MOMO || "0248847819",

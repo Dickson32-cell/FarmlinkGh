@@ -48,6 +48,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // In-app + push notification to the admin (opens straight to the reports tab)
+    try {
+      const { notifyAdminEvent } = await import("@/lib/adminNotify");
+      const catLabel: Record<string, string> = {
+        scam: "Scam report", payment: "Payment issue", "fake-listing": "Fake listing",
+        behavior: "User behavior", "hacked-account": "HACKED ACCOUNT", other: "Report",
+      };
+      await notifyAdminEvent(
+        "report",
+        `New ${catLabel[category]} report`,
+        `${reporterName}${reporterPhone ? " (" + reporterPhone + ")" : ""} submitted a report — review it in the admin panel.`,
+        "/admin?tab=reports",
+      );
+    } catch {}
+
     // SMS the admin instantly (non-fatal)
     try {
       const { sendSms } = await import("@/lib/otp");
@@ -55,11 +70,7 @@ export async function POST(req: NextRequest) {
         scam: "Scam report", payment: "Payment issue", "fake-listing": "Fake listing",
         behavior: "User behavior", "hacked-account": "HACKED ACCOUNT", other: "Report",
       };
-try {
-      const { notifyAdminEvent } = await import("@/lib/adminNotify");
-      await notifyAdminEvent("report", `New ${catLabel[category]} report`, `${reporterName}${reporterPhone ? " (" + reporterPhone + ")" : ""} submitted a report — review it in the admin panel.`, "/admin");
-    } catch {}
-          await sendSms(
+      await sendSms(
         process.env.ADMIN_MOMO || "0248847819",
         `FarmLink ALERT: New ${catLabel[category]} from ${reporterName}${reporterPhone ? " (" + reporterPhone + ")" : ""}. Check admin panel.`,
       );
@@ -77,21 +88,72 @@ try {
   }
 }
 
-// GET /api/reports — admin only: all reports, newest first
+// GET /api/reports — admin only: all reports, newest first, enriched with the
+// accused party (farmer + listing + order) resolved from the listing URL.
 export async function GET(req: NextRequest) {
   const session = await getAdminSession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const reports = await prisma.report.findMany({
     orderBy: { createdAt: "desc" },
   });
-  return NextResponse.json(reports);
+
+  // Resolve listing IDs referenced in report URLs (…/market/<listingId>)
+  const listingIds: string[] = [];
+  for (const r of reports) {
+    const m = r.listingUrl.match(/\/market\/([a-z0-9]+)/i);
+    if (m) listingIds.push(m[1]);
+  }
+  const listings = listingIds.length
+    ? await prisma.listing.findMany({
+        where: { id: { in: listingIds } },
+        include: { farmer: true },
+      })
+    : [];
+  const listingMap = new Map(listings.map((l) => [l.id, l]));
+
+  const enriched = reports.map((r) => {
+    const m = r.listingUrl.match(/\/market\/([a-z0-9]+)/i);
+    const listing = m ? listingMap.get(m[1]) : undefined;
+    return {
+      ...r,
+      listing: listing
+        ? {
+            id: listing.id,
+            crop: listing.crop,
+            quantity: listing.quantity,
+            unit: listing.unit,
+            price: listing.price,
+            region: listing.region,
+            location: listing.location,
+            status: listing.status,
+            postedDate: listing.postedDate,
+          }
+        : null,
+      farmer: listing
+        ? {
+            id: listing.farmer.id,
+            name: listing.farmer.name,
+            phone: listing.farmer.phone,
+            region: listing.farmer.region,
+            town: listing.farmer.town,
+            mainCrops: listing.farmer.mainCrops,
+            farmSize: listing.farmer.farmSize,
+          }
+        : null,
+      // The farmer's LOGIN user record (for account-level actions)
+      farmerUserId: listing?.farmer?.userId ?? null,
+    };
+  });
+
+  return NextResponse.json(enriched);
 }
 
-// PATCH /api/reports — admin only: update status / add a note
+// PATCH /api/reports — admin only: update status / add a note.
+// On resolve: SMS BOTH the reporter and the accused farmer (if any).
 export async function PATCH(req: NextRequest) {
   const session = await getAdminSession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id, status, adminNote } = await req.json();
+  const { id, status, adminNote, resolution } = await req.json();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const validStatuses = ["new", "reviewing", "resolved"];
   if (status && !validStatuses.includes(status)) {
@@ -106,18 +168,52 @@ export async function PATCH(req: NextRequest) {
     data: {
       status: status || existing.status,
       adminNote: adminNote !== undefined ? adminNote : existing.adminNote,
+      resolution: resolution !== undefined ? resolution : (existing as any).resolution,
     },
   });
 
-  // If the admin resolves it and the reporter has a phone, tell them
-  if (status === "resolved" && existing.status !== "resolved" && report.reporterPhone) {
-    try {
-      const { sendSms } = await import("@/lib/otp");
-      await sendSms(
-        report.reporterPhone,
-        `FarmLink: Your report has been reviewed and resolved. Thank you for keeping FarmLink safe. farmlinkgh.app`,
-      );
-    } catch { /* non-fatal */ }
+  // If the admin resolves it, notify BOTH sides (non-fatal)
+  if (status === "resolved" && existing.status !== "resolved") {
+    // Reporter SMS
+    if (report.reporterPhone) {
+      try {
+        const { sendSms } = await import("@/lib/otp");
+        const outcome = ((report as any).resolution || "reviewed")
+          .replace(/-/g, " ")
+          .replace(/^\w/, (c) => c.toUpperCase());
+        await sendSms(
+          report.reporterPhone,
+          `FarmLink: Your report was resolved - ${outcome}. Thank you for keeping FarmLink safe. farmlinkgh.app`,
+        );
+      } catch { /* non-fatal */ }
+    }
+    // Accused farmer SMS — resolve the listing from the URL, then SMS the farmer
+    const m = report.listingUrl.match(/\/market\/([a-z0-9]+)/i);
+    if (m) {
+      try {
+        const listing = await prisma.listing.findUnique({
+          where: { id: m[1] },
+          include: { farmer: true },
+        });
+        if (listing) {
+          const { sendSms } = await import("@/lib/otp");
+          await sendSms(
+            listing.farmer.phone,
+            `FarmLink: A report was reviewed and closed by our team regarding your ${listing.crop} listing. No action needed if all is in order. farmlinkgh.app`,
+          );
+          // In-app notification for the farmer too
+          await prisma.notification.create({
+            data: {
+              userId: listing.farmer.userId,
+              type: "report",
+              title: "Report about your listing was reviewed",
+              body: `A report about your ${listing.crop} listing was reviewed and closed by the FarmLink team.`,
+              link: "/dashboard",
+            },
+          }).catch(() => {});
+        }
+      } catch { /* non-fatal */ }
+    }
   }
 
   return NextResponse.json(report);
