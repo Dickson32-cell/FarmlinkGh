@@ -179,11 +179,11 @@ export async function PATCH(req: NextRequest) {
       try {
         const { sendSms } = await import("@/lib/otp");
         const outcome = ((report as any).resolution || "reviewed")
-          .replace(/-/g, " ")
-          .replace(/^\w/, (c) => c.toUpperCase());
+          .replace(/-/g, " ");
+        const outcomeText = outcome.charAt(0).toUpperCase() + outcome.slice(1);
         await sendSms(
           report.reporterPhone,
-          `FarmLink: Your report was resolved - ${outcome}. Thank you for keeping FarmLink safe. farmlinkgh.app`,
+          `FarmLink: Your report was resolved - ${outcomeText}. Thank you for keeping FarmLink safe. farmlinkgh.app`,
         );
       } catch { /* non-fatal */ }
     }
