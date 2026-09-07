@@ -50,11 +50,16 @@ export default function Notifications() {
     setItems([]);
   };
 
+  // Click = open full details in place (also marks it read).
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const openOne = async (n: Notification) => {
+    if (expandedId === n.id) { setExpandedId(null); return; }
+    setExpandedId(n.id);
     if (!n.read) {
       await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: n.id }) });
+      setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
     }
-    if (n.link) router.push(n.link);
   };
 
   const isFarmer = role === "farmer";
@@ -96,10 +101,13 @@ export default function Notifications() {
           {items.map((n) => {
             const st = typeStyles[n.type] || typeStyles.system;
             return (
-              <button
+              <div
                 key={n.id}
+                className={`bg-white rounded-xl shadow border overflow-hidden ${n.read ? "border-gray-200" : "border-[#43a047] ring-1 ring-[#43a047]/30"}`}
+              >
+              <button
                 onClick={() => openOne(n)}
-                className={`w-full text-left bg-white rounded-xl shadow border p-4 flex gap-3 items-start transition-colors hover:bg-gray-50 ${n.read ? "border-gray-200" : "border-[#43a047] ring-1 ring-[#43a047]/30"}`}
+                className={`w-full text-left p-4 flex gap-3 items-start transition-colors hover:bg-gray-50`}
               >
                 <span className={`shrink-0 text-[10px] font-bold uppercase px-2 py-1 rounded-full border ${st.bg}`}>{st.label}</span>
                 <span className="flex-1 min-w-0">
@@ -111,8 +119,33 @@ export default function Notifications() {
                   <span className="block text-xs text-gray-400 mt-1">
                     {new Date(n.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </span>
+                  <span className="block text-xs text-[#1b5e20] font-semibold mt-1">
+                    {expandedId === n.id ? "Hide details" : "Open for full details"}
+                  </span>
                 </span>
               </button>
+
+              {expandedId === n.id && (
+                <div className="border-t border-gray-100 px-4 py-4 bg-gray-50/60">
+                  <div className="text-xs font-bold uppercase text-gray-500 mb-1">Full notification</div>
+                  <div className="bg-white rounded-lg p-4 border border-gray-200 text-sm text-gray-700 whitespace-pre-wrap">
+                    <div className="font-semibold text-[#1b5e20] mb-1">{n.title}</div>
+                    <div>{n.body}</div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    Type: <strong>{st.label}</strong> | Received: <strong>{new Date(n.createdAt).toLocaleString("en-GB")}</strong> | Status: <strong>{n.read ? "Read" : "Unread"}</strong>
+                  </div>
+                  {n.link && (
+                    <button
+                      onClick={() => router.push(n.link)}
+                      className="mt-3 bg-[#1b5e20] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#0d3818]"
+                    >
+                      Go to where this happened
+                    </button>
+                  )}
+                </div>
+              )}
+              </div>
             );
           })}
         </div>
