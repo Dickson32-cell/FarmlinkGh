@@ -32,7 +32,8 @@ export default function Notifications() {
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
       if (!d.user) { router.push("/login"); return; }
-      if (d.user.role === "admin") { router.push("/admin"); return; }
+      // Admins see their notification list here too (their items link
+      // straight to the right admin tab via ?tab= deep links).
       setRole(d.user.role);
       fetch("/api/notifications").then((r) => r.json()).then(setItems).finally(() => setLoading(false));
     });
