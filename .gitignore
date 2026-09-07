@@ -11,3 +11,4 @@ dev.db
 .env*
 _*.cjs
 _mint.mjs
+_smsid.txt
