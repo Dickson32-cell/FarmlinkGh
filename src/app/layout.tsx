@@ -40,6 +40,9 @@ export const metadata: Metadata = {
   },
   // PWA: installable app on Android home screens; iOS via Add to Home Screen
   manifest: "/manifest.json",
+  verification: {
+    google: "nMa8A3C-ah1SHyEYvWaMsRCM3-UF8YO1gKvfpILFfvQ",
+  },
   appleWebApp: {
     capable: true,
     title: "FarmLink",
