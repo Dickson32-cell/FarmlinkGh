@@ -33,7 +33,12 @@ export async function POST(req: NextRequest) {
   }
 
   const session = await getSession(req);
-  const ownerId = session?.userId || null;
+  // SECURITY: uploads require a logged-in account — anonymous visitors must
+  // not be able to fill the database with files (storage abuse).
+  if (!session) {
+    return NextResponse.json({ error: "Login required to upload files" }, { status: 401 });
+  }
+  const ownerId = session.userId;
 
   const bytes = Buffer.from(await file.arrayBuffer());
 
